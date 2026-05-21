@@ -1,0 +1,10 @@
+[project]
+name = "fastpass"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "django==2.2.5",
+    "django-environ>=0.11.2",
+]
