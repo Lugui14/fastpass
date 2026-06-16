@@ -1,141 +1,36 @@
 {% extends "core/base.html" %}
 
-{% block title %}Entrar - FastPass{% endblock %}
-
-{% block extra_css %}
-<style>
-    .auth-container {
-        max-width: 450px;
-        margin: 4rem auto;
-        padding: 2.5rem;
-        background-color: var(--glass-bg);
-        backdrop-filter: var(--glass-blur);
-        border: 1px solid var(--card-border);
-        border-radius: 16px;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-        animation: fadeIn 0.4s ease;
-    }
-
-    .auth-title {
-        font-size: 1.8rem;
-        font-weight: 700;
-        margin-bottom: 0.5rem;
-        text-align: center;
-        background: var(--gradient-accent);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-
-    .auth-subtitle {
-        color: var(--text-secondary);
-        font-size: 0.95rem;
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-
-    .form-group {
-        margin-bottom: 1.5rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .form-label {
-        font-weight: 500;
-        font-size: 0.9rem;
-        color: var(--text-primary);
-    }
-
-    .form-control {
-        background-color: rgba(15, 23, 42, 0.6);
-        border: 1px solid var(--card-border);
-        border-radius: 8px;
-        padding: 0.75rem 1rem;
-        color: var(--text-primary);
-        font-family: inherit;
-        font-size: 0.95rem;
-        transition: all 0.2s ease;
-        outline: none;
-    }
-
-    .form-control:focus {
-        border-color: var(--accent-color);
-        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
-    }
-
-    .btn-submit {
-        background: var(--gradient-accent);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        padding: 0.75rem 1.5rem;
-        font-size: 1rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        width: 100%;
-        margin-top: 1rem;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .btn-submit:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
-    }
-
-    .btn-submit:active {
-        transform: translateY(0);
-    }
-
-    .auth-footer {
-        text-align: center;
-        margin-top: 1.5rem;
-        font-size: 0.9rem;
-        color: var(--text-secondary);
-    }
-
-    .auth-link {
-        color: var(--accent-color);
-        text-decoration: none;
-        font-weight: 600;
-        transition: color 0.2s;
-    }
-
-    .auth-link:hover {
-        color: var(--text-primary);
-        text-decoration: underline;
-    }
-</style>
-{% endblock %}
+{% block title %}Entrar - FastPass UFFS{% endblock %}
 
 {% block content %}
-<div class="auth-container">
-    <h2 class="auth-title">Bem-vindo de volta</h2>
-    <p class="auth-subtitle">Acesse sua carteira e gerencie suas entradas</p>
-    
-    <form method="POST">
-        {% csrf_token %}
-        
-        <div class="form-group">
-            <label class="form-label" for="id_username">E-mail</label>
-            <input type="email" name="username" id="id_username" class="form-control" placeholder="exemplo@email.com" required autocomplete="email">
+<div class="row justify-content-center my-5 animate__animated animate__fadeIn">
+    <div class="col-12 col-sm-10 col-md-8 col-lg-5">
+        <div class="card card-uffs p-4 p-md-5">
+            <h2 class="text-center fw-bold mb-2" style="color: var(--uffs-yellow-accent);">Bem-vindo de volta</h2>
+            <p class="text-center text-muted mb-4 fs-6">Acesse sua carteira e gerencie suas entradas</p>
+            
+            <form method="POST">
+                {% csrf_token %}
+                
+                <div class="mb-4">
+                    <label class="form-label fw-semibold" for="id_username">E-mail</label>
+                    <input type="email" name="username" id="id_username" class="form-control form-control-uffs" placeholder="exemplo@email.com" required autocomplete="email">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="form-label fw-semibold" for="id_password">Senha</label>
+                    <input type="password" name="password" id="id_password" class="form-control form-control-uffs" placeholder="••••••••" required autocomplete="current-password">
+                </div>
+                
+                <button type="submit" class="btn btn-uffs-primary w-100 py-2 fs-6 mt-2">
+                    Entrar <i class="fa-solid fa-arrow-right-to-bracket ms-1"></i>
+                </button>
+            </form>
+            
+            <div class="text-center mt-4 text-muted fs-7">
+                Não tem uma conta? <a href="{% url 'register' %}" class="text-decoration-none fw-semibold" style="color: var(--uffs-green-light);">Criar conta</a>
+            </div>
         </div>
-        
-        <div class="form-group">
-            <label class="form-label" for="id_password">Senha</label>
-            <input type="password" name="password" id="id_password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
-        </div>
-        
-        <button type="submit" class="btn-submit">
-            Entrar <i class="fa-solid fa-arrow-right-to-bracket"></i>
-        </button>
-    </form>
-    
-    <div class="auth-footer">
-        Não tem uma conta? <a href="{% url 'register' %}" class="auth-link">Criar conta</a>
     </div>
 </div>
 {% endblock %}

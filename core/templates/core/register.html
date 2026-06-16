@@ -1,257 +1,127 @@
 {% extends "core/base.html" %}
 
-{% block title %}Cadastro - FastPass{% endblock %}
-
-{% block extra_css %}
-<style>
-    .auth-container {
-        max-width: 550px;
-        margin: 2rem auto;
-        padding: 2.5rem;
-        background-color: var(--glass-bg);
-        backdrop-filter: var(--glass-blur);
-        border: 1px solid var(--card-border);
-        border-radius: 16px;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-        animation: fadeIn 0.4s ease;
-    }
-
-    .auth-title {
-        font-size: 1.8rem;
-        font-weight: 700;
-        margin-bottom: 0.5rem;
-        text-align: center;
-        background: var(--gradient-accent);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-
-    .auth-subtitle {
-        color: var(--text-secondary);
-        font-size: 0.95rem;
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-
-    .form-group {
-        margin-bottom: 1.25rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.4rem;
-    }
-
-    .form-row {
-        display: flex;
-        gap: 1rem;
-    }
-
-    .form-row .form-group {
-        flex: 1;
-    }
-
-    .form-label {
-        font-weight: 500;
-        font-size: 0.9rem;
-        color: var(--text-primary);
-    }
-
-    .form-control {
-        background-color: rgba(15, 23, 42, 0.6);
-        border: 1px solid var(--card-border);
-        border-radius: 8px;
-        padding: 0.75rem 1rem;
-        color: var(--text-primary);
-        font-family: inherit;
-        font-size: 0.95rem;
-        transition: all 0.2s ease;
-        outline: none;
-        width: 100%;
-    }
-
-    .form-control:focus {
-        border-color: var(--accent-color);
-        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
-    }
-
-    .error-list {
-        color: var(--danger);
-        font-size: 0.85rem;
-        list-style: none;
-        margin-top: 0.2rem;
-    }
-
-    .conditional-section {
-        border-top: 1px solid var(--card-border);
-        padding-top: 1.5rem;
-        margin-top: 1.5rem;
-        animation: fadeIn 0.3s ease;
-    }
-
-    .btn-submit {
-        background: var(--gradient-accent);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        padding: 0.75rem 1.5rem;
-        font-size: 1rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        width: 100%;
-        margin-top: 1.5rem;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .btn-submit:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
-    }
-
-    .auth-footer {
-        text-align: center;
-        margin-top: 1.5rem;
-        font-size: 0.9rem;
-        color: var(--text-secondary);
-    }
-
-    .auth-link {
-        color: var(--accent-color);
-        text-decoration: none;
-        font-weight: 600;
-        transition: color 0.2s;
-    }
-
-    .auth-link:hover {
-        color: var(--text-primary);
-        text-decoration: underline;
-    }
-
-    @media (max-width: 576px) {
-        .form-row {
-            flex-direction: column;
-            gap: 0;
-        }
-    }
-</style>
-{% endblock %}
+{% block title %}Cadastro - FastPass UFFS{% endblock %}
 
 {% block content %}
-<div class="auth-container">
-    <h2 class="auth-title">Crie sua conta</h2>
-    <p class="auth-subtitle">Modernize seu acesso ao RU da UFFS</p>
-    
-    <form method="POST">
-        {% csrf_token %}
-        
-        {% if form.non_field_errors %}
-            <div class="alert alert-danger">
-                {% for error in form.non_field_errors %}
-                    <p>{{ error }}</p>
-                {% endfor %}
-            </div>
-        {% endif %}
-        
-        <div class="form-group">
-            <label class="form-label" for="{{ form.nome.id_for_label }}">{{ form.nome.label }}</label>
-            {{ form.nome }}
-            {% if form.nome.errors %}
-                <ul class="error-list">{% for error in form.nome.errors %}<li>{{ error }}</li>{% endfor %}</ul>
-            {% endif %}
-        </div>
-        
-        <div class="form-row">
-            <div class="form-group">
-                <label class="form-label" for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
-                {{ form.email }}
-                {% if form.email.errors %}
-                    <ul class="error-list">{% for error in form.email.errors %}<li>{{ error }}</li>{% endfor %}</ul>
-                {% endif %}
-            </div>
+<div class="row justify-content-center my-4 animate__animated animate__fadeIn">
+    <div class="col-12 col-sm-10 col-md-8 col-lg-6">
+        <div class="card card-uffs p-4 p-md-5">
+            <h2 class="text-center fw-bold mb-2" style="color: var(--uffs-yellow-accent);">Crie sua conta</h2>
+            <p class="text-center text-muted mb-4 fs-6">Modernize seu acesso ao RU da UFFS</p>
             
-            <div class="form-group">
-                <label class="form-label" for="{{ form.tipo.id_for_label }}">{{ form.tipo.label }}</label>
-                {{ form.tipo }}
-                {% if form.tipo.errors %}
-                    <ul class="error-list">{% for error in form.tipo.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+            <form method="POST">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger mb-4">
+                        {% for error in form.non_field_errors %}
+                            <p class="mb-0">{{ error }}</p>
+                        {% endfor %}
+                    </div>
                 {% endif %}
-            </div>
-        </div>
-        
-        <div class="form-row">
-            <div class="form-group">
-                <label class="form-label" for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
-                {{ form.password }}
-                {% if form.password.errors %}
-                    <ul class="error-list">{% for error in form.password.errors %}<li>{{ error }}</li>{% endfor %}</ul>
-                {% endif %}
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="{{ form.confirm_password.id_for_label }}">{{ form.confirm_password.label }}</label>
-                {{ form.confirm_password }}
-                {% if form.confirm_password.errors %}
-                    <ul class="error-list">{% for error in form.confirm_password.errors %}<li>{{ error }}</li>{% endfor %}</ul>
-                {% endif %}
-            </div>
-        </div>
-        
-        <!-- Estudante Fields Section -->
-        <div id="estudante-fields" class="conditional-section">
-            <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--accent-color);"><i class="fa-solid fa-graduation-cap"></i> Dados do Estudante</h3>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label" for="{{ form.cpf.id_for_label }}">{{ form.cpf.label }}</label>
-                    {{ form.cpf }}
-                    {% if form.cpf.errors %}
-                        <ul class="error-list">{% for error in form.cpf.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="{{ form.nome.id_for_label }}">{{ form.nome.label }}</label>
+                    <input type="text" name="nome" id="{{ form.nome.id_for_label }}" class="form-control form-control-uffs" placeholder="Nome completo ou Razão Social" required value="{{ form.nome.value|default:'' }}">
+                    {% if form.nome.errors %}
+                        <div class="text-danger fs-7 mt-1">{% for error in form.nome.errors %}{{ error }}{% endfor %}</div>
                     {% endif %}
                 </div>
-                <div class="form-group">
-                    <label class="form-label" for="{{ form.matricula.id_for_label }}">{{ form.matricula.label }}</label>
-                    {{ form.matricula }}
-                    {% if form.matricula.errors %}
-                        <ul class="error-list">{% for error in form.matricula.errors %}<li>{{ error }}</li>{% endfor %}</ul>
-                    {% endif %}
+                
+                <div class="row mb-3">
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <label class="form-label fw-semibold" for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                        <input type="email" name="email" id="{{ form.email.id_for_label }}" class="form-control form-control-uffs" placeholder="exemplo@email.com" required value="{{ form.email.value|default:'' }}">
+                        {% if form.email.errors %}
+                            <div class="text-danger fs-7 mt-1">{% for error in form.email.errors %}{{ error }}{% endfor %}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold" for="{{ form.tipo.id_for_label }}">{{ form.tipo.label }}</label>
+                        <select name="tipo" id="{{ form.tipo.id_for_label }}" class="form-select form-control-uffs" required>
+                            {% for val, label in form.tipo.field.choices %}
+                                <option value="{{ val }}" {% if form.tipo.value == val %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        {% if form.tipo.errors %}
+                            <div class="text-danger fs-7 mt-1">{% for error in form.tipo.errors %}{{ error }}{% endfor %}</div>
+                        {% endif %}
+                    </div>
                 </div>
-            </div>
-            <div class="form-group">
-                <label class="form-label" for="{{ form.data_nascimento.id_for_label }}">{{ form.data_nascimento.label }}</label>
-                {{ form.data_nascimento }}
-                {% if form.data_nascimento.errors %}
-                    <ul class="error-list">{% for error in form.data_nascimento.errors %}<li>{{ error }}</li>{% endfor %}</ul>
-                {% endif %}
+                
+                <div class="row mb-3">
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <label class="form-label fw-semibold" for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+                        <input type="password" name="password" id="{{ form.password.id_for_label }}" class="form-control form-control-uffs" placeholder="••••••••" required>
+                        {% if form.password.errors %}
+                            <div class="text-danger fs-7 mt-1">{% for error in form.password.errors %}{{ error }}{% endfor %}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold" for="{{ form.confirm_password.id_for_label }}">{{ form.confirm_password.label }}</label>
+                        <input type="password" name="confirm_password" id="{{ form.confirm_password.id_for_label }}" class="form-control form-control-uffs" placeholder="••••••••" required>
+                        {% if form.confirm_password.errors %}
+                            <div class="text-danger fs-7 mt-1">{% for error in form.confirm_password.errors %}{{ error }}{% endfor %}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Estudante Fields Section -->
+                <div id="estudante-fields" class="mt-4 pt-3 border-top border-secondary border-opacity-10 animate__animated animate__fadeIn">
+                    <h5 class="fw-bold mb-3" style="color: var(--uffs-yellow-accent);"><i class="fa-solid fa-graduation-cap me-1"></i> Dados do Estudante</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <label class="form-label fw-semibold" for="{{ form.cpf.id_for_label }}">{{ form.cpf.label }}</label>
+                            <input type="text" name="cpf" id="{{ form.cpf.id_for_label }}" class="form-control form-control-uffs" placeholder="CPF (apenas números)" value="{{ form.cpf.value|default:'' }}">
+                            {% if form.cpf.errors %}
+                                <div class="text-danger fs-7 mt-1">{% for error in form.cpf.errors %}{{ error }}{% endfor %}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" for="{{ form.matricula.id_for_label }}">{{ form.matricula.label }}</label>
+                            <input type="text" name="matricula" id="{{ form.matricula.id_for_label }}" class="form-control form-control-uffs" placeholder="Matrícula" value="{{ form.matricula.value|default:'' }}">
+                            {% if form.matricula.errors %}
+                                <div class="text-danger fs-7 mt-1">{% for error in form.matricula.errors %}{{ error }}{% endfor %}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="{{ form.data_nascimento.id_for_label }}">{{ form.data_nascimento.label }}</label>
+                        <input type="date" name="data_nascimento" id="{{ form.data_nascimento.id_for_label }}" class="form-control form-control-uffs" value="{{ form.data_nascimento.value|default:'' }}">
+                        {% if form.data_nascimento.errors %}
+                            <div class="text-danger fs-7 mt-1">{% for error in form.data_nascimento.errors %}{{ error }}{% endfor %}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Empresa Fields Section -->
+                <div id="empresa-fields" class="mt-4 pt-3 border-top border-secondary border-opacity-10 animate__animated animate__fadeIn">
+                    <h5 class="fw-bold mb-3" style="color: var(--uffs-yellow-accent);"><i class="fa-solid fa-building me-1"></i> Dados do Estabelecimento</h5>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="{{ form.cnpj.id_for_label }}">{{ form.cnpj.label }}</label>
+                        <input type="text" name="cnpj" id="{{ form.cnpj.id_for_label }}" class="form-control form-control-uffs" placeholder="CNPJ (apenas números)" value="{{ form.cnpj.value|default:'' }}">
+                        {% if form.cnpj.errors %}
+                            <div class="text-danger fs-7 mt-1">{% for error in form.cnpj.errors %}{{ error }}{% endfor %}</div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="{{ form.dados_saque.id_for_label }}">{{ form.dados_saque.label }}</label>
+                        <input type="text" name="dados_saque" id="{{ form.dados_saque.id_for_label }}" class="form-control form-control-uffs" placeholder="Sua chave Pix" value="{{ form.dados_saque.value|default:'' }}">
+                        {% if form.dados_saque.errors %}
+                            <div class="text-danger fs-7 mt-1">{% for error in form.dados_saque.errors %}{{ error }}{% endfor %}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-uffs-primary w-100 py-2 fs-6 mt-4">
+                    Cadastrar <i class="fa-solid fa-user-plus ms-1"></i>
+                </button>
+            </form>
+            
+            <div class="text-center mt-4 text-muted fs-7">
+                Já tem uma conta? <a href="{% url 'login' %}" class="text-decoration-none fw-semibold" style="color: var(--uffs-green-light);">Entrar</a>
             </div>
         </div>
-        
-        <!-- Empresa Fields Section -->
-        <div id="empresa-fields" class="conditional-section">
-            <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--accent-color);"><i class="fa-solid fa-building"></i> Dados do Estabelecimento</h3>
-            <div class="form-group">
-                <label class="form-label" for="{{ form.cnpj.id_for_label }}">{{ form.cnpj.label }}</label>
-                {{ form.cnpj }}
-                {% if form.cnpj.errors %}
-                    <ul class="error-list">{% for error in form.cnpj.errors %}<li>{{ error }}</li>{% endfor %}</ul>
-                {% endif %}
-            </div>
-            <div class="form-group">
-                <label class="form-label" for="{{ form.dados_saque.id_for_label }}">{{ form.dados_saque.label }}</label>
-                {{ form.dados_saque }}
-                {% if form.dados_saque.errors %}
-                    <ul class="error-list">{% for error in form.dados_saque.errors %}<li>{{ error }}</li>{% endfor %}</ul>
-                {% endif %}
-            </div>
-        </div>
-        
-        <button type="submit" class="btn-submit">
-            Cadastrar <i class="fa-solid fa-user-plus"></i>
-        </button>
-    </form>
-    
-    <div class="auth-footer">
-        Já tem uma conta? <a href="{% url 'login' %}" class="auth-link">Entrar</a>
     </div>
 </div>
 

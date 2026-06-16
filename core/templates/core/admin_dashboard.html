@@ -1,156 +1,59 @@
 {% extends "core/base.html" %}
 
-{% block title %}Painel do Administrador - FastPass{% endblock %}
-
-{% block extra_css %}
-<style>
-    .admin-container {
-        max-width: 900px;
-        margin: 0 auto;
-        animation: fadeIn 0.4s ease;
-    }
-
-    .card {
-        background-color: var(--bg-secondary);
-        border: 1px solid var(--card-border);
-        border-radius: 16px;
-        padding: 2rem;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    }
-
-    /* Table */
-    .table-container {
-        overflow-x: auto;
-        margin-top: 1.5rem;
-    }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        text-align: left;
-    }
-
-    th {
-        color: var(--text-secondary);
-        font-weight: 600;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        padding: 1rem;
-        border-bottom: 1px solid var(--card-border);
-    }
-
-    td {
-        padding: 1rem;
-        border-bottom: 1px solid var(--card-border);
-        font-size: 0.95rem;
-    }
-
-    tr:last-child td {
-        border-bottom: none;
-    }
-
-    .btn-action {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        padding: 0.4rem 0.8rem;
-        border-radius: 6px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        border: none;
-        cursor: pointer;
-        transition: all 0.2s;
-        text-decoration: none;
-    }
-
-    .btn-approve {
-        background-color: rgba(16, 185, 129, 0.15);
-        color: var(--success);
-        border: 1px solid rgba(16, 185, 129, 0.3);
-    }
-
-    .btn-approve:hover {
-        background-color: var(--success);
-        color: white;
-    }
-
-    .btn-reject {
-        background-color: rgba(239, 68, 68, 0.15);
-        color: var(--danger);
-        border: 1px solid rgba(239, 68, 68, 0.3);
-    }
-
-    .btn-reject:hover {
-        background-color: var(--danger);
-        color: white;
-    }
-
-    .empty-state {
-        text-align: center;
-        color: var(--text-secondary);
-        padding: 4rem 1rem;
-    }
-
-    .empty-state i {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-        opacity: 0.5;
-        color: var(--accent-color);
-    }
-</style>
-{% endblock %}
+{% block title %}Painel do Administrador - FastPass UFFS{% endblock %}
 
 {% block content %}
-<div class="admin-container">
-    <div class="card">
-        <h3 style="font-size: 1.4rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; border-bottom: 1px solid var(--card-border); padding-bottom: 1rem;">
-            <i class="fa-solid fa-users-gear" style="color: var(--accent-color);"></i> Moderação de Saques Pendentes
-        </h3>
-        
-        <div class="table-container">
-            {% if saques_pendentes %}
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th>Estabelecimento</th>
-                            <th>Valor</th>
-                            <th>Método/Dados</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for s in saques_pendentes %}
+<div class="row justify-content-center animate__animated animate__fadeIn">
+    <div class="col-12 col-xl-10">
+        <div class="card card-uffs p-4">
+            <h3 class="fw-bold mb-4 pb-2 border-bottom border-secondary border-opacity-15" style="color: var(--uffs-yellow-accent);">
+                <i class="fa-solid fa-users-gear me-1"></i> Moderação de Saques Pendentes
+            </h3>
+            
+            <div class="table-responsive mt-3">
+                {% if saques_pendentes %}
+                    <table class="table table-uffs align-middle">
+                        <thead>
                             <tr>
-                                <td style="color: var(--text-secondary);">{{ s.transacao.data_hora|date:"d/m/Y H:i" }}</td>
-                                <td style="font-weight: 600;">{{ s.transacao.conta.usuario.nome }}</td>
-                                <td style="font-weight: 700; color: var(--success);">R$ {{ s.transacao.valor }}</td>
-                                <td>
-                                    <div><strong>{{ s.metodo_pagamento }}</strong></div>
-                                    <div style="font-size: 0.8rem; color: var(--text-secondary);">{{ s.descricao }}</div>
-                                </td>
-                                <td>
-                                    <div style="display: flex; gap: 0.5rem;">
-                                        <button class="btn-action btn-approve" onclick="alert('Aprovação automática será integrada na Fase 5.');">
-                                            <i class="fa-solid fa-check"></i> Aprovar
-                                        </button>
-                                        <button class="btn-action btn-reject" onclick="alert('Recusa automática será integrada na Fase 5.');">
-                                            <i class="fa-solid fa-xmark"></i> Recusar
-                                        </button>
-                                    </div>
-                                </td>
+                                <th>Data</th>
+                                <th>Estabelecimento</th>
+                                <th>Valor</th>
+                                <th>Método/Dados</th>
+                                <th class="text-center">Ações</th>
                             </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <div class="empty-state">
-                    <i class="fa-solid fa-circle-check"></i>
-                    <p>Tudo em ordem!</p>
-                    <p style="font-size: 0.9rem; margin-top: 0.5rem;">Nenhuma solicitação de saque pendente.</p>
-                </div>
-            {% endif %}
+                        </thead>
+                        <tbody>
+                            {% for s in saques_pendentes %}
+                                <tr>
+                                    <td class="text-muted">{{ s.transacao.data_hora|date:"d/m/Y H:i" }}</td>
+                                    <td class="fw-semibold">{{ s.transacao.conta.usuario.nome }}</td>
+                                    <td class="fw-bold text-success">R$ {{ s.transacao.valor }}</td>
+                                    <td>
+                                        <div class="fw-semibold">{{ s.metodo_pagamento }}</div>
+                                        <div class="text-muted fs-7">{{ s.descricao }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex justify-content-center gap-2">
+                                            <button class="btn btn-outline-success btn-sm px-3" onclick="alert('Aprovação automática será integrada na Fase 5.');">
+                                                <i class="fa-solid fa-check me-1"></i> Aprovar
+                                            </button>
+                                            <button class="btn btn-outline-danger btn-sm px-3" onclick="alert('Recusa automática será integrada na Fase 5.');">
+                                                <i class="fa-solid fa-xmark me-1"></i> Recusar
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="fa-solid fa-circle-check fs-1 text-success mb-3 opacity-50"></i>
+                        <p class="mb-0 fw-semibold">Tudo em ordem!</p>
+                        <p class="fs-7">Nenhuma solicitação de saque pendente.</p>
+                    </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>

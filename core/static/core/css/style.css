@@ -1,0 +1,145 @@
+/* FastPass - UFFS Design System Overrides */
+:root {
+    --uffs-green-primary: #006738;
+    --uffs-green-light: #10b981;
+    --uffs-yellow-accent: #fbbf24;
+    --bg-dark: #09110d;
+    --bg-card: #111e17;
+    --text-light: #f8fafc;
+    --text-muted: #94a3b8;
+    --border-color: rgba(255, 255, 255, 0.08);
+    --success-color: #10b981;
+    --danger-color: #ef4444;
+}
+
+body {
+    background-color: var(--bg-dark) !important;
+    color: var(--text-light) !important;
+    font-family: 'Outfit', sans-serif;
+    min-height: 100vh;
+}
+
+/* Navbar overrides */
+.navbar-uffs {
+    background-color: rgba(9, 17, 13, 0.85) !important;
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.navbar-brand-uffs {
+    font-weight: 700;
+    color: var(--uffs-yellow-accent) !important;
+    font-size: 1.4rem;
+}
+
+.navbar-brand-uffs i {
+    color: var(--uffs-green-light);
+}
+
+/* Card overrides */
+.card-uffs {
+    background-color: var(--bg-card) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 16px !important;
+    color: var(--text-light) !important;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.25) !important;
+}
+
+.wallet-card-uffs {
+    background: linear-gradient(135deg, var(--uffs-green-primary) 0%, #064e3b 100%);
+    border-radius: 16px;
+    padding: 2rem;
+    color: white;
+    box-shadow: 0 8px 30px rgba(0, 103, 56, 0.3);
+    height: 220px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.wallet-card-uffs::before {
+    content: '';
+    position: absolute;
+    width: 150px;
+    height: 150px;
+    background: rgba(251, 191, 36, 0.08);
+    border-radius: 50%;
+    top: -50px;
+    right: -50px;
+}
+
+/* Custom Buttons overrides */
+.btn-uffs-primary {
+    background: linear-gradient(135deg, var(--uffs-green-light) 0%, var(--uffs-green-primary) 100%) !important;
+    border: none !important;
+    color: white !important;
+    font-weight: 600 !important;
+    padding: 0.6rem 1.2rem !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+.btn-uffs-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+}
+
+.btn-uffs-accent {
+    background-color: rgba(251, 191, 36, 0.1) !important;
+    border: 1px solid rgba(251, 191, 36, 0.3) !important;
+    color: var(--uffs-yellow-accent) !important;
+    font-weight: 600 !important;
+    padding: 0.6rem 1.2rem !important;
+    border-radius: 8px !important;
+}
+
+.btn-uffs-accent:hover {
+    background-color: var(--uffs-yellow-accent) !important;
+    color: var(--bg-dark) !important;
+}
+
+/* Tables style */
+.table-uffs {
+    color: var(--text-light) !important;
+}
+
+.table-uffs th {
+    color: var(--text-muted) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+}
+
+.table-uffs td {
+    border-bottom: 1px solid var(--border-color) !important;
+}
+
+/* Badges */
+.badge-credit {
+    background-color: rgba(16, 185, 129, 0.15) !important;
+    color: var(--success-color) !important;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.badge-debit {
+    background-color: rgba(239, 68, 68, 0.15) !important;
+    color: var(--danger-color) !important;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Inputs */
+.form-control-uffs {
+    background-color: rgba(9, 17, 13, 0.6) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-light) !important;
+    border-radius: 8px !important;
+    padding: 0.75rem 1rem !important;
+}
+
+.form-control-uffs:focus {
+    border-color: var(--uffs-green-light) !important;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2) !important;
+    background-color: rgba(9, 17, 13, 0.8) !important;
+    color: white !important;
+}
