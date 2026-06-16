@@ -54,6 +54,9 @@
                     <p class="fs-7 text-muted italic my-2">Nenhum produto cadastrado no momento.</p>
                 {% endif %}
             </div>
+            <button class="btn btn-uffs-accent w-100 btn-sm py-2 mt-3" data-bs-toggle="modal" data-bs-target="#productModal">
+                <i class="fa-solid fa-plus me-1"></i> Cadastrar Produto
+            </button>
         </div>
 
     </div>
@@ -274,6 +277,35 @@
                 <div class="modal-footer border-secondary border-opacity-20">
                     <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-uffs-primary">Enviar Solicitação</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Product (Cadastro de Produto) -->
+<div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content card-uffs text-light">
+            <form action="{% url 'criar_produto' %}" method="POST">
+                {% csrf_token %}
+                <div class="modal-header border-secondary border-opacity-20">
+                    <h5 class="modal-title fw-bold" id="productModalLabel" style="color: var(--uffs-yellow-accent);"><i class="fa-solid fa-utensils me-2"></i>Cadastrar Produto</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold fs-7" for="id_nome_produto">Nome do Produto</label>
+                        <input type="text" name="nome" id="id_nome_produto" class="form-control form-control-uffs" placeholder="Ex: Almoço RU, Café, Refrigerante" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold fs-7" for="id_valor_produto">Valor do Produto (R$)</label>
+                        <input type="number" name="valor" id="id_valor_produto" step="0.01" min="0.05" class="form-control form-control-uffs" placeholder="0,00" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary border-opacity-20">
+                    <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-uffs-primary">Salvar Produto</button>
                 </div>
             </form>
         </div>

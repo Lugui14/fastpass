@@ -543,3 +543,70 @@ class SaqueFlowTest(TestCase):
         estorno_trans = Transacao.objects.filter(conta=self.conta_empresa, operacao="credito").first()
         self.assertIsNotNone(estorno_trans)
         self.assertEqual(estorno_trans.valor, Decimal("100.00"))
+
+
+class ProdutoFlowTest(TestCase):
+    def setUp(self):
+        # Create company
+        self.company_user = Usuario.objects.create_user(
+            email="empresa@uffs.edu.br",
+            nome="RU UFFS",
+            tipo="empresa",
+            password="password123"
+        )
+        self.empresa = Empresa.objects.create(
+            usuario=self.company_user,
+            cnpj="12345678000199"
+        )
+        
+        # Create student
+        self.student_user = Usuario.objects.create_user(
+            email="estudante@uffs.edu.br",
+            nome="Estudante Teste",
+            tipo="estudante",
+            password="password123"
+        )
+
+    def test_criar_produto_sucesso(self):
+        self.client.login(username="empresa@uffs.edu.br", password="password123")
+        
+        payload = {
+            "nome": "Cafezinho",
+            "valor": "1.50"
+        }
+        from core.models import Produto
+        response = self.client.post("/produto/criar/", payload, follow=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/dashboard/empresa/")
+        
+        # Verify product created
+        produto = Produto.objects.filter(empresa=self.empresa, nome="Cafezinho").first()
+        self.assertIsNotNone(produto)
+        self.assertEqual(produto.valor, Decimal("1.50"))
+
+    def test_criar_produto_valor_invalido(self):
+        self.client.login(username="empresa@uffs.edu.br", password="password123")
+        
+        from core.models import Produto
+        # Test negative value
+        payload = {
+            "nome": "Suco Estranho",
+            "valor": "-1.50"
+        }
+        response = self.client.post("/produto/criar/", payload, follow=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Produto.objects.count(), 0)
+
+    def test_criar_produto_restrito_a_empresa(self):
+        # Student logs in
+        self.client.login(username="estudante@uffs.edu.br", password="password123")
+        
+        payload = {
+            "nome": "Tentativa Invasao",
+            "valor": "10.00"
+        }
+        from core.models import Produto
+        response = self.client.post("/produto/criar/", payload, follow=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/")
+        self.assertEqual(Produto.objects.count(), 0)

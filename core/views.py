@@ -426,3 +426,40 @@ class RecusarSaqueView(LoginRequiredMixin, View):
             messages.error(request, f"Erro ao recusar saque: {str(e)}")
             
         return redirect("admin_dashboard")
+
+
+class CriarProdutoView(LoginRequiredMixin, View):
+    """
+    Cadastra um novo produto/serviço para o estabelecimento logado.
+    """
+    def post(self, request, *args, **kwargs):
+        if request.user.tipo != "empresa":
+            messages.error(request, "Acesso restrito a estabelecimentos.")
+            return redirect("home")
+            
+        nome = request.POST.get("nome")
+        valor_str = request.POST.get("valor")
+        
+        if not nome:
+            messages.error(request, "O nome do produto é obrigatório.")
+            return redirect("company_dashboard")
+            
+        try:
+            valor = Decimal(valor_str)
+            if valor <= 0:
+                raise ValueError("O valor deve ser positivo.")
+        except (TypeError, ValueError, InvalidOperation):
+            messages.error(request, "Valor do produto inválido.")
+            return redirect("company_dashboard")
+            
+        try:
+            Produto.objects.create(
+                empresa=request.user.empresa_perfil,
+                nome=nome,
+                valor=valor
+            )
+            messages.success(request, f"Produto '{nome}' cadastrado com sucesso!")
+        except Exception as e:
+            messages.error(request, f"Erro ao cadastrar produto: {str(e)}")
+            
+        return redirect("company_dashboard")

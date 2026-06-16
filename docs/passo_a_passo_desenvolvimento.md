@@ -120,6 +120,12 @@ No arquivo HTML `dashboard_estudante.html`:
 </script>
 ```
 
+#### Ação 2.4: Cadastro de Produtos pelas Empresas (RF11)
+
+- Na dashboard da Empresa, haverá um botão para abrir o modal de cadastro de produtos.
+- O formulário enviará os dados para a view de criação de produto (`CriarProdutoView`).
+- O backend valida se o usuário autenticado é do tipo `empresa`, extrai os campos `nome` e `valor` e cria a instância no banco vinculando ao perfil da `Empresa`.
+
 ---
 
 ### Passo 3: Fluxo de Depósito e Recarga via PIX (RF05, RN05, RN07, RNF01)
@@ -163,6 +169,8 @@ def confirmar_deposito(deposito_id, valor_pago):
 Este fluxo representa a compra da entrada do RU pelo estudante ao passar pela catraca / guichê da Empresa.
 
 #### Ação 4.1: Interface da Empresa (Scanner de Câmera)
+
+- A pessoa logada como empresa deve poder cadastrar novos produtos vinculados àquela empresa.
 
 - O funcionário do RU acessa a dashboard da Empresa e clica em **"Escanear Entrada"**.
 - A tela ativa a câmera traseira do dispositivo usando a biblioteca `html5-qrcode` para ler o QR Code do estudante.

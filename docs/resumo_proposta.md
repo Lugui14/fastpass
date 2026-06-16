@@ -99,6 +99,7 @@ sequenceDiagram
 | **RF08** | O sistema deve fornecer interfaces minimalistas, limpas e fáceis de compreender, com apenas dados essenciais. |
 | **RF09** | O usuário deve ser capaz de realizar o logout (deslogar) do sistema a qualquer momento. |
 | **RF10** | O usuário do tipo Administrador deve ser capaz de analisar e aprovar/recusar solicitações de saques. |
+| **RF11** | O sistema deve permitir que as empresas (estabelecimentos) cadastrem e gerenciem seus produtos e valores. |
 
 ### 5.2. Requisitos Não-Funcionais (RNF)
 

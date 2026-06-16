@@ -23,4 +23,7 @@ urlpatterns = [
     path("saque/solicitar/", views.SolicitarSaqueView.as_view(), name="solicitar_saque"),
     path("saque/aprovar/<int:saque_id>/", views.AprovarSaqueView.as_view(), name="aprovar_saque"),
     path("saque/recusar/<int:saque_id>/", views.RecusarSaqueView.as_view(), name="recusar_saque"),
+    
+    # Cadastro de Produtos
+    path("produto/criar/", views.CriarProdutoView.as_view(), name="criar_produto"),
 ]
