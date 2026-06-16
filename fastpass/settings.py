@@ -22,6 +22,9 @@ env = environ.Env()
 environ.Env.read_env(env_file=os.path.join(BASE_DIR, ".env"))
 
 SECRET_KEY = env("SECRET_KEY")
+ABACATE_PAY_API_KEY = env("ABACATE_PAY_API_KEY", default="")
+ABACATE_PAY_WEBHOOK_SECRET = env("ABACATE_PAY_WEBHOOK_SECRET", default="")
+APP_URL = env("APP_URL", default="http://localhost:8000")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True

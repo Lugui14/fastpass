@@ -151,6 +151,8 @@ class Deposito(models.Model):
     situacao = models.CharField(max_length=255)
     metodo_pagamento = models.CharField(max_length=255)
     descricao = models.CharField(max_length=255)
+    abacatepay_billing_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
+    abacatepay_checkout_url = models.URLField(max_length=500, null=True, blank=True)
 
     class Meta:
         db_table = "deposito"

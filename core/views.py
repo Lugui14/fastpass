@@ -12,7 +12,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from .forms import RegisterForm
 from .models import Transacao, Venda, Saque, Deposito, Usuario, Estudante, Empresa, Conta, Produto
-from .services.payment import MockPaymentGateway, confirmar_deposito
+from .services.payment import AbacatePayGateway, confirmar_deposito
 
 class RegisterView(CreateView):
     template_name = "core/register.html"
@@ -140,8 +140,8 @@ class SolicitarDepositoView(LoginRequiredMixin, View):
             descricao=f"PIX-DEP-{transacao.id}"
         )
         
-        # 3. Chamar Gateway (mockado)
-        gateway = MockPaymentGateway()
+        # 3. Chamar Gateway Abacate Pay
+        gateway = AbacatePayGateway()
         payment_data = gateway.gerar_pix_deposito(valor, transacao.id)
         
         # Salva na sessão para exibição no checkout
@@ -165,7 +165,7 @@ class CheckoutDepositoView(LoginRequiredMixin, TemplateView):
             # Recupera dados gerados pelo gateway
             payment_data = self.request.session.get(f"checkout_{transacao_id}")
             if not payment_data:
-                gateway = MockPaymentGateway()
+                gateway = AbacatePayGateway()
                 payment_data = gateway.gerar_pix_deposito(deposito.valor, transacao.id)
                 self.request.session[f"checkout_{transacao_id}"] = payment_data
                 
@@ -198,22 +198,76 @@ class ConfirmarDepositoSimulacaoView(LoginRequiredMixin, View):
         return redirect("student_dashboard")
 
 
+import hmac
+import hashlib
+from django.conf import settings
+
+def verificar_assinatura_abacatepay(raw_body, signature, secret):
+    if not secret or not signature:
+        return False
+    computed_signature = hmac.new(
+        secret.encode("utf-8"),
+        raw_body,
+        hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(computed_signature, signature)
+
+
 @method_decorator(csrf_exempt, name="dispatch")
 class ConfirmarDepositoWebhookView(View):
     """
-    Webhook público para simular o recebimento de callbacks externos de pagamentos.
+    Webhook público para processar callbacks do Abacate Pay.
     """
     def post(self, request, *args, **kwargs):
         import json
         try:
+            # 1. Verificar assinatura se a chave secreta do webhook estiver configurada
+            webhook_secret = getattr(settings, "ABACATE_PAY_WEBHOOK_SECRET", "")
+            if webhook_secret:
+                signature = request.META.get("HTTP_X_WEBHOOK_SIGNATURE")
+                if not signature or not verificar_assinatura_abacatepay(request.body, signature, webhook_secret):
+                    return JsonResponse({"status": "error", "message": "Assinatura inválida."}, status=400)
+
             data = json.loads(request.body)
+
+            # 2. Suporte ao formato mockado legado (para testes e simulação direta)
             deposito_id = data.get("deposito_id")
-            valor = Decimal(str(data.get("valor")))
-            
-            sucesso, msg = confirmar_deposito(deposito_id, valor)
+            if deposito_id:
+                valor = Decimal(str(data.get("valor")))
+                sucesso, msg = confirmar_deposito(deposito_id, valor)
+                if sucesso:
+                    return JsonResponse({"status": "success", "message": msg})
+                return JsonResponse({"status": "error", "message": msg}, status=400)
+
+            # 3. Formato do Abacate Pay Webhook
+            event = data.get("event")
+            if event != "billing.paid":
+                return JsonResponse({"status": "success", "message": f"Evento {event} ignorado."})
+
+            billing_data = data.get("data", {})
+            billing_id = billing_data.get("id")
+            status = billing_data.get("status")
+
+            if status != "PAID":
+                return JsonResponse({"status": "success", "message": f"Status {status} ignorado."})
+
+            try:
+                deposito = Deposito.objects.get(abacatepay_billing_id=billing_id)
+            except Deposito.DoesNotExist:
+                return JsonResponse({"status": "error", "message": f"Depósito não encontrado para o billing_id {billing_id}."}, status=404)
+
+            # Valor pago (Abacate Pay envia o valor em centavos)
+            amount_cents = billing_data.get("amount")
+            if amount_cents:
+                valor_pago = Decimal(str(amount_cents)) / Decimal("100")
+            else:
+                valor_pago = deposito.valor
+
+            sucesso, msg = confirmar_deposito(deposito.id, valor_pago)
             if sucesso:
                 return JsonResponse({"status": "success", "message": msg})
             return JsonResponse({"status": "error", "message": msg}, status=400)
+
         except Exception as e:
             return JsonResponse({"status": "error", "message": str(e)}, status=400)
 

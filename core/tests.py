@@ -1,5 +1,5 @@
 from decimal import Decimal
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
 from core.models import Conta, Estudante, Empresa, Transacao, Deposito, Venda, Saque
 from core.forms import RegisterForm
@@ -163,6 +163,7 @@ class DashboardViewsTest(TestCase):
         self.assertEqual(response["Location"], "/")
 
 
+@override_settings(ABACATE_PAY_WEBHOOK_SECRET="", ABACATE_PAY_API_KEY="mock")
 class DepositFlowTest(TestCase):
     def setUp(self):
         # Create student
@@ -278,6 +279,145 @@ class DepositFlowTest(TestCase):
         # Balance should still be 120.00 (not duplicated to 240.00!)
         self.conta.refresh_from_db()
         self.assertEqual(self.conta.saldo, Decimal("120.00"))
+
+    def test_abacatepay_gateway_gera_checkout_no_ambiente_de_testes(self):
+        from core.services.payment import AbacatePayGateway
+        # Create pending deposit manually
+        transacao = Transacao.objects.create(
+            operacao="credito",
+            valor=0.00,
+            conta=self.conta,
+            descricao="Recarga PIX pendente"
+        )
+        deposito = Deposito.objects.create(
+            transacao=transacao,
+            valor=Decimal("50.00"),
+            situacao="pendente",
+            metodo_pagamento="pix",
+            descricao="PIX-DEP-MOCK"
+        )
+        
+        gateway = AbacatePayGateway()
+        payment_data = gateway.gerar_pix_deposito(Decimal("50.00"), transacao.id)
+        
+        self.assertIn("payment_url", payment_data)
+        self.assertTrue(payment_data["payment_url"].startswith("https://pay.abacatepay.com/bill-"))
+        
+        deposito.refresh_from_db()
+        self.assertIsNotNone(deposito.abacatepay_billing_id)
+        self.assertEqual(deposito.abacatepay_checkout_url, payment_data["payment_url"])
+
+    def test_webhook_abacatepay_confirmacao_com_sucesso(self):
+        # Create pending deposit manually
+        transacao = Transacao.objects.create(
+            operacao="credito",
+            valor=0.00,
+            conta=self.conta,
+            descricao="Recarga PIX pendente"
+        )
+        deposito = Deposito.objects.create(
+            transacao=transacao,
+            valor=Decimal("60.00"),
+            situacao="pendente",
+            metodo_pagamento="pix",
+            descricao="PIX-DEP-MOCK",
+            abacatepay_billing_id="bill_abc123",
+            abacatepay_checkout_url="https://pay.abacatepay.com/bill-bill_abc123"
+        )
+        
+        # Simulated Abacate Pay payload
+        import json
+        payload = {
+            "id": "log_webhook_123",
+            "event": "billing.paid",
+            "apiVersion": 2,
+            "devMode": True,
+            "data": {
+                "id": "bill_abc123",
+                "status": "PAID",
+                "amount": 6000 # em centavos
+            }
+        }
+        
+        response = self.client.post(
+            "/api/pagamentos/confirmar/",
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 200)
+        
+        self.conta.refresh_from_db()
+        self.assertEqual(self.conta.saldo, Decimal("60.00"))
+        
+        deposito.refresh_from_db()
+        self.assertEqual(deposito.situacao, "confirmado")
+
+    def test_webhook_abacatepay_assinatura_invalida(self):
+        # Create pending deposit manually
+        transacao = Transacao.objects.create(
+            operacao="credito",
+            valor=0.00,
+            conta=self.conta,
+            descricao="Recarga PIX pendente"
+        )
+        deposito = Deposito.objects.create(
+            transacao=transacao,
+            valor=Decimal("70.00"),
+            situacao="pendente",
+            metodo_pagamento="pix",
+            descricao="PIX-DEP-MOCK",
+            abacatepay_billing_id="bill_xyz789",
+            abacatepay_checkout_url="https://pay.abacatepay.com/bill-bill_xyz789"
+        )
+        
+        # Configura segredo do webhook
+        from django.test import override_settings
+        import json
+        payload = {
+            "id": "log_webhook_789",
+            "event": "billing.paid",
+            "apiVersion": 2,
+            "data": {
+                "id": "bill_xyz789",
+                "status": "PAID",
+                "amount": 7000
+            }
+        }
+        
+        with override_settings(ABACATE_PAY_WEBHOOK_SECRET="super-secret-key"):
+            # Sem cabeçalho de assinatura - deve falhar
+            response = self.client.post(
+                "/api/pagamentos/confirmar/",
+                data=json.dumps(payload),
+                content_type="application/json"
+            )
+            self.assertEqual(response.status_code, 400)
+            
+            # Com assinatura inválida - deve falhar
+            response_invalid = self.client.post(
+                "/api/pagamentos/confirmar/",
+                data=json.dumps(payload),
+                content_type="application/json",
+                HTTP_X_WEBHOOK_SIGNATURE="invalid_signature"
+            )
+            self.assertEqual(response_invalid.status_code, 400)
+            
+            # Com assinatura válida - deve ter sucesso
+            import hmac
+            import hashlib
+            raw_body = json.dumps(payload).encode("utf-8")
+            valid_sig = hmac.new(b"super-secret-key", raw_body, hashlib.sha256).hexdigest()
+            
+            response_valid = self.client.post(
+                "/api/pagamentos/confirmar/",
+                data=raw_body,
+                content_type="application/json",
+                HTTP_X_WEBHOOK_SIGNATURE=valid_sig
+            )
+            self.assertEqual(response_valid.status_code, 200)
+            
+            self.conta.refresh_from_db()
+            self.assertEqual(self.conta.saldo, Decimal("70.00"))
 
 
 class VendaFlowTest(TestCase):

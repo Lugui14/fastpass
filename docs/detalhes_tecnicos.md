@@ -173,3 +173,33 @@ def test_student_dashboard_restricted_to_student(self):
     self.assertEqual(response.status_code, 302)
     self.assertEqual(response["Location"], "/")
 ```
+
+---
+
+## 4. Integração com Abacate Pay (Gateway de Pagamentos)
+
+Para processar depósitos via PIX em ambiente de homologação (devmode), integramos a API da **Abacate Pay** (versão **v1** para criação de cobranças e **v2** para recepção de webhooks).
+
+### A) Mapeamento no Banco de Dados
+A tabela de `Deposito` ([core/models.py](file:///home/luiz/src/fastpass/core/models.py)) foi estendida para associar cobranças do sistema com faturas do Abacate Pay:
+*   `abacatepay_billing_id`: Identificador único da fatura retornado pela API da Abacate Pay (usado para localizar o depósito ao receber webhooks).
+*   `abacatepay_checkout_url`: Link gerado pela Abacate Pay para o qual o estudante é redirecionado para pagar.
+
+### B) Criação de Cobranças (`AbacatePayGateway`)
+A classe `AbacatePayGateway` em [core/services/payment.py](file:///home/luiz/src/fastpass/core/services/payment.py) implementa a interface `PaymentGatewayInterface` e realiza chamadas para `POST https://api.abacatepay.com/v1/billing/create`.
+
+*   **Identificação do Estudante:** Cada cobrança inclui os dados do estudante correspondente (`nome` e `email`) no objeto `customer`.
+*   **Descrição de Destino:** O produto criado na fatura possui uma descrição explícita indicando a carteira destinatária do valor para auditoria e documentação no dashboard do Abacate Pay: `Destinado para carteira digital de: {nome} ({email})`.
+*   **URLs Dinâmicas:** Os links de redirecionamento (`returnUrl` e `completionUrl`) são construídos de forma dinâmica utilizando a variável de ambiente `APP_URL` (com fallback padrão para `http://localhost:8000`), permitindo fácil portabilidade entre ambientes locais, de staging e produção.
+*   **Isolamento de Testes e Dev Mode:** Caso a chave `ABACATE_PAY_API_KEY` não esteja configurada ou o sistema esteja rodando testes unitários, o gateway automaticamente desvia a chamada de rede e gera links e IDs mockados locais seguros, assegurando o funcionamento offline completo e hermético.
+
+### C) Webhook de Confirmação e Segurança (`ConfirmarDepositoWebhookView`)
+O endpoint `/api/pagamentos/confirmar/` escuta as notificações enviadas pela Abacate Pay.
+
+1.  **Validação de Assinatura (HMAC-SHA256):**
+    Caso a chave `ABACATE_PAY_WEBHOOK_SECRET` esteja configurada no `.env` da aplicação, o webhook obrigatoriamente valida a autenticidade da requisição calculando o HMAC-SHA256 do corpo da requisição bruta (*raw body*) com a chave secreta e comparando com o valor presente no cabeçalho `X-Webhook-Signature`.
+2.  **Processamento de Eventos:**
+    Somente eventos do tipo `billing.paid` que tenham `status` igual a `PAID` são processados. O saldo correspondente é incrementado de forma atômica no banco de dados e a transação é confirmada.
+3.  **Retrocompatibilidade:**
+    O webhook preserva retrocompatibilidade com o formato de simulação de desenvolvimento simplificado (enviando `deposito_id` e `valor` diretamente), garantindo a estabilidade de testes unitários legados.
+

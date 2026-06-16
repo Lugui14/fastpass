@@ -27,31 +27,25 @@
                 <div class="text-muted fs-7">Escaneie o código com o app do seu banco</div>
             </div>
 
+            <!-- Botão de redirecionamento Abacate Pay -->
+            <div class="mb-4">
+                <a href="{{ payment.payment_url }}" target="_blank" class="btn btn-success btn-lg w-100 fw-bold py-2 shadow-sm fs-6 text-white" style="background-color: #10B981; border-color: #10B981;">
+                    <i class="fa-solid fa-external-link me-1"></i> Pagar com Abacate Pay
+                </a>
+            </div>
+
             <!-- Copia e Cola -->
             <div class="mb-4">
-                <label class="form-label fw-semibold text-muted fs-7">PIX Copia e Cola</label>
+                <label class="form-label fw-semibold text-muted fs-7">Link de Pagamento / Checkout</label>
                 <div class="input-group">
                     <input type="text" id="pixCode" class="form-control form-control-uffs fs-7" value="{{ payment.qr_code_copy_paste }}" readonly>
                     <button class="btn btn-uffs-accent" type="button" onclick="copyPixCode()">
-                        <i class="fa-solid fa-copy"></i> Copiar
+                        <i class="fa-solid fa-copy"></i> Copiar Link
                     </button>
                 </div>
             </div>
 
-            <!-- Simulação de Pagamento para Desenvolvimento -->
-            <div class="mt-4 pt-4 border-top border-secondary border-opacity-20 text-center">
-                <div class="alert alert-warning text-dark border-0 p-3 mb-3" style="background-color: rgba(251, 191, 36, 0.15);">
-                    <h5 class="fw-bold fs-6 mb-1 text-warning-emphasis"><i class="fa-solid fa-flask me-1"></i> Ambiente de Homologação</h5>
-                    <p class="fs-7 mb-0 text-white-50">Use o botão abaixo para simular que o pagamento do PIX foi efetuado pelo aplicativo do banco.</p>
-                </div>
-                
-                <form action="{% url 'confirmar_deposito_simulacao' transacao.id %}" method="POST">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-uffs-primary py-2 px-4">
-                        <i class="fa-solid fa-circle-check me-1"></i> Simular Pagamento do PIX
-                    </button>
-                </form>
-            </div>
+
 
             <div class="text-center mt-4">
                 <a href="{% url 'student_dashboard' %}" class="text-decoration-none text-muted fs-7">
