@@ -1,63 +1,72 @@
-/* FastPass - UFFS Design System Overrides */
+/* FastPass - UFFS Corporate Light Design System */
 :root {
     --uffs-green-primary: #006738;
     --uffs-green-light: #10b981;
-    --uffs-yellow-accent: #fbbf24;
-    --bg-dark: #09110d;
-    --bg-card: #111e17;
-    --text-light: #f8fafc;
-    --text-muted: #94a3b8;
-    --border-color: rgba(255, 255, 255, 0.08);
-    --success-color: #10b981;
-    --danger-color: #ef4444;
+    --uffs-yellow-accent: #d97706; /* Darker amber for high contrast on light background */
+    --bg-light: #f8fafc;
+    --bg-card: #ffffff;
+    --text-dark: #0f172a;
+    --text-muted: #64748b;
+    --border-color: #e2e8f0;
+    --success-color: #059669;
+    --danger-color: #dc2626;
 }
 
 body {
-    background-color: var(--bg-dark) !important;
-    color: var(--text-light) !important;
+    background-color: var(--bg-light) !important;
+    color: var(--text-dark) !important;
     font-family: 'Outfit', sans-serif;
     min-height: 100vh;
 }
 
-/* Navbar overrides */
+/* Navbar UFFS - Corporate Header */
 .navbar-uffs {
-    background-color: rgba(9, 17, 13, 0.85) !important;
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border-color);
+    background-color: var(--uffs-green-primary) !important;
+    border-bottom: 2px solid var(--uffs-yellow-accent);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .navbar-brand-uffs {
     font-weight: 700;
-    color: var(--uffs-yellow-accent) !important;
+    color: #ffffff !important;
     font-size: 1.4rem;
 }
 
 .navbar-brand-uffs i {
-    color: var(--uffs-green-light);
+    color: #ffffff;
 }
 
-/* Card overrides */
+.navbar-uffs .nav-link {
+    color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.navbar-uffs .nav-link:hover, .navbar-uffs .nav-link.active {
+    color: #ffffff !important;
+}
+
+/* Corporate Cards */
 .card-uffs {
     background-color: var(--bg-card) !important;
     border: 1px solid var(--border-color) !important;
-    border-radius: 16px !important;
-    color: var(--text-light) !important;
-    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.25) !important;
+    border-radius: 12px !important;
+    color: var(--text-dark) !important;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05) !important;
 }
 
+/* Wallet Card (Digital Credit Card look) */
 .wallet-card-uffs {
     background: linear-gradient(135deg, var(--uffs-green-primary) 0%, #064e3b 100%);
-    border-radius: 16px;
-    padding: 2rem;
-    color: white;
-    box-shadow: 0 8px 30px rgba(0, 103, 56, 0.3);
+    border-radius: 12px;
+    padding: 1.75rem;
+    color: #ffffff;
+    box-shadow: 0 6px 20px rgba(0, 103, 56, 0.2);
     height: 220px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     position: relative;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: none;
 }
 
 .wallet-card-uffs::before {
@@ -65,50 +74,52 @@ body {
     position: absolute;
     width: 150px;
     height: 150px;
-    background: rgba(251, 191, 36, 0.08);
+    background: rgba(255, 255, 255, 0.08);
     border-radius: 50%;
     top: -50px;
     right: -50px;
 }
 
-/* Custom Buttons overrides */
+/* Buttons */
 .btn-uffs-primary {
     background: linear-gradient(135deg, var(--uffs-green-light) 0%, var(--uffs-green-primary) 100%) !important;
     border: none !important;
     color: white !important;
     font-weight: 600 !important;
     padding: 0.6rem 1.2rem !important;
-    border-radius: 8px !important;
+    border-radius: 6px !important;
     transition: all 0.2s ease-in-out !important;
 }
 
 .btn-uffs-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
 }
 
 .btn-uffs-accent {
-    background-color: rgba(251, 191, 36, 0.1) !important;
-    border: 1px solid rgba(251, 191, 36, 0.3) !important;
+    background-color: rgba(217, 119, 6, 0.08) !important;
+    border: 1px solid rgba(217, 119, 6, 0.3) !important;
     color: var(--uffs-yellow-accent) !important;
     font-weight: 600 !important;
     padding: 0.6rem 1.2rem !important;
-    border-radius: 8px !important;
+    border-radius: 6px !important;
 }
 
 .btn-uffs-accent:hover {
     background-color: var(--uffs-yellow-accent) !important;
-    color: var(--bg-dark) !important;
+    color: #ffffff !important;
 }
 
-/* Tables style */
+/* Tables */
 .table-uffs {
-    color: var(--text-light) !important;
+    color: var(--text-dark) !important;
 }
 
 .table-uffs th {
     color: var(--text-muted) !important;
-    border-bottom: 1px solid var(--border-color) !important;
+    font-weight: 600;
+    border-bottom: 2px solid var(--border-color) !important;
+    background-color: #f8fafc !important;
 }
 
 .table-uffs td {
@@ -117,29 +128,38 @@ body {
 
 /* Badges */
 .badge-credit {
-    background-color: rgba(16, 185, 129, 0.15) !important;
+    background-color: rgba(16, 185, 129, 0.1) !important;
     color: var(--success-color) !important;
-    border: 1px solid rgba(16, 185, 129, 0.3);
+    border: 1px solid rgba(16, 185, 129, 0.2) !important;
 }
 
 .badge-debit {
-    background-color: rgba(239, 68, 68, 0.15) !important;
+    background-color: rgba(239, 68, 68, 0.1) !important;
     color: var(--danger-color) !important;
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    border: 1px solid rgba(239, 68, 68, 0.2) !important;
 }
 
 /* Inputs */
 .form-control-uffs {
-    background-color: rgba(9, 17, 13, 0.6) !important;
+    background-color: #ffffff !important;
     border: 1px solid var(--border-color) !important;
-    color: var(--text-light) !important;
-    border-radius: 8px !important;
+    color: var(--text-dark) !important;
+    border-radius: 6px !important;
     padding: 0.75rem 1rem !important;
 }
 
 .form-control-uffs:focus {
     border-color: var(--uffs-green-light) !important;
-    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2) !important;
-    background-color: rgba(9, 17, 13, 0.8) !important;
-    color: white !important;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.15) !important;
+    background-color: #ffffff !important;
+    color: var(--text-dark) !important;
+}
+
+/* Modal Styling */
+.modal-content.card-uffs {
+    background-color: #ffffff !important;
+    color: var(--text-dark) !important;
+}
+.btn-close-white {
+    filter: invert(1) grayscale(1) brightness(0.2);
 }
