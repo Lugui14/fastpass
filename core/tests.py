@@ -1,7 +1,7 @@
 from decimal import Decimal
 from django.test import TestCase
 from django.contrib.auth import get_user_model
-from core.models import Conta, Estudante, Empresa, Transacao, Deposito
+from core.models import Conta, Estudante, Empresa, Transacao, Deposito, Venda
 from core.forms import RegisterForm
 
 Usuario = get_user_model()
@@ -278,3 +278,126 @@ class DepositFlowTest(TestCase):
         # Balance should still be 120.00 (not duplicated to 240.00!)
         self.conta.refresh_from_db()
         self.assertEqual(self.conta.saldo, Decimal("120.00"))
+
+
+class VendaFlowTest(TestCase):
+    def setUp(self):
+        # Create student
+        self.student_user = Usuario.objects.create_user(
+            email="estudante@uffs.edu.br",
+            nome="Estudante Teste",
+            tipo="estudante",
+            password="password123"
+        )
+        self.estudante = Estudante.objects.create(
+            usuario=self.student_user,
+            cpf="12345678901",
+            matricula="2211100006"
+        )
+        self.conta_estudante = self.student_user.conta
+        self.conta_estudante.saldo = Decimal("50.00")
+        self.conta_estudante.save()
+
+        # Create company
+        self.company_user = Usuario.objects.create_user(
+            email="empresa@uffs.edu.br",
+            nome="RU UFFS",
+            tipo="empresa",
+            password="password123"
+        )
+        self.empresa = Empresa.objects.create(
+            usuario=self.company_user,
+            cnpj="12345678000199"
+        )
+        self.conta_empresa = self.company_user.conta
+        self.conta_empresa.saldo = Decimal("10.00")
+        self.conta_empresa.save()
+
+        # Create product belonging to company
+        from core.models import Produto
+        self.produto = Produto.objects.create(
+            empresa=self.empresa,
+            nome="Almoço RU",
+            valor=Decimal("2.50")
+        )
+
+        # Create another product belonging to another company
+        self.another_company = Usuario.objects.create_user(
+            email="outra@empresa.com",
+            nome="Outra Cantina",
+            tipo="empresa",
+            password="password123"
+        )
+        self.other_empresa = Empresa.objects.create(
+            usuario=self.another_company,
+            cnpj="98765432100019"
+        )
+        self.other_produto = Produto.objects.create(
+            empresa=self.other_empresa,
+            nome="Suco",
+            valor=Decimal("5.00")
+        )
+
+    def test_registrar_venda_sucesso(self):
+        self.client.login(username="empresa@uffs.edu.br", password="password123")
+        
+        payload = {
+            "estudante_uuid": str(self.student_user.uuid),
+            "produto_id": self.produto.id
+        }
+        response = self.client.post("/api/vender/", payload)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "sucesso")
+        
+        # Verify balances
+        self.conta_estudante.refresh_from_db()
+        self.conta_empresa.refresh_from_db()
+        self.assertEqual(self.conta_estudante.saldo, Decimal("47.50"))
+        self.assertEqual(self.conta_empresa.saldo, Decimal("12.50"))
+        
+        # Verify Venda and Transacoes
+        venda_exists = Venda.objects.filter(produto=self.produto, estudante=self.estudante).exists()
+        self.assertTrue(venda_exists)
+        
+        # Check transaction logs
+        self.assertEqual(Transacao.objects.filter(conta=self.conta_estudante, operacao="debito").count(), 1)
+        self.assertEqual(Transacao.objects.filter(conta=self.conta_empresa, operacao="credito").count(), 1)
+
+    def test_registrar_venda_saldo_insuficiente(self):
+        # Set student balance to 0.00
+        self.conta_estudante.saldo = Decimal("0.00")
+        self.conta_estudante.save()
+        
+        self.client.login(username="empresa@uffs.edu.br", password="password123")
+        
+        payload = {
+            "estudante_uuid": str(self.student_user.uuid),
+            "produto_id": self.produto.id
+        }
+        response = self.client.post("/api/vender/", payload)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["status"], "erro")
+        
+        # Verify balances unchanged
+        self.conta_estudante.refresh_from_db()
+        self.conta_empresa.refresh_from_db()
+        self.assertEqual(self.conta_estudante.saldo, Decimal("0.00"))
+        self.assertEqual(self.conta_empresa.saldo, Decimal("10.00"))
+
+    def test_registrar_venda_produto_de_outro_estabelecimento_recusada(self):
+        self.client.login(username="empresa@uffs.edu.br", password="password123")
+        
+        # Try to sell a product belonging to other_empresa
+        payload = {
+            "estudante_uuid": str(self.student_user.uuid),
+            "produto_id": self.other_produto.id
+        }
+        response = self.client.post("/api/vender/", payload)
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json()["status"], "erro")
+        
+        # Balances should be unchanged
+        self.conta_estudante.refresh_from_db()
+        self.conta_empresa.refresh_from_db()
+        self.assertEqual(self.conta_estudante.saldo, Decimal("50.00"))
+        self.assertEqual(self.conta_empresa.saldo, Decimal("10.00"))

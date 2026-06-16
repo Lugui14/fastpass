@@ -15,4 +15,7 @@ urlpatterns = [
     path("deposito/checkout/<int:transacao_id>/", views.CheckoutDepositoView.as_view(), name="checkout_deposito"),
     path("deposito/confirmar-simulacao/<int:transacao_id>/", views.ConfirmarDepositoSimulacaoView.as_view(), name="confirmar_deposito_simulacao"),
     path("api/pagamentos/confirmar/", views.ConfirmarDepositoWebhookView.as_view(), name="api_confirmar_deposito"),
+    
+    # Validação de Entrada / Vendas
+    path("api/vender/", views.RegistrarVendaView.as_view(), name="api_registrar_venda"),
 ]

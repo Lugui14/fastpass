@@ -1,5 +1,6 @@
 from decimal import Decimal, InvalidOperation
 from django.shortcuts import render, redirect
+from django.db import transaction
 from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import CreateView, TemplateView
@@ -10,7 +11,7 @@ from django.http import JsonResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from .forms import RegisterForm
-from .models import Transacao, Venda, Saque, Deposito
+from .models import Transacao, Venda, Saque, Deposito, Usuario, Estudante, Empresa, Conta, Produto
 from .services.payment import MockPaymentGateway, confirmar_deposito
 
 class RegisterView(CreateView):
@@ -215,3 +216,83 @@ class ConfirmarDepositoWebhookView(View):
             return JsonResponse({"status": "error", "message": msg}, status=400)
         except Exception as e:
             return JsonResponse({"status": "error", "message": str(e)}, status=400)
+
+
+class RegistrarVendaView(LoginRequiredMixin, View):
+    """
+    Registra a venda debitando do estudante e creditando na empresa de forma atômica e segura.
+    """
+    def post(self, request, *args, **kwargs):
+        if request.user.tipo != "empresa":
+            return JsonResponse({"status": "erro", "mensagem": "Acesso restrito a estabelecimentos."}, status=403)
+            
+        estudante_uuid = request.POST.get("estudante_uuid")
+        produto_id = request.POST.get("produto_id")
+        
+        if not estudante_uuid or not produto_id:
+            return JsonResponse({"status": "erro", "mensagem": "UUID do estudante e ID do produto são obrigatórios."}, status=400)
+            
+        try:
+            # Encontra o estudante e o produto
+            estudante_usuario = Usuario.objects.get(uuid=estudante_uuid, tipo="estudante")
+            estudante = estudante_usuario.estudante_perfil
+            produto = Produto.objects.get(id=produto_id, empresa=request.user.empresa_perfil)
+            
+            conta_estudante = estudante_usuario.conta
+            conta_empresa = request.user.conta
+            
+            # 1. Validação rápida de saldo (pre-lock)
+            if conta_estudante.saldo < produto.valor:
+                return JsonResponse({"status": "erro", "mensagem": "Saldo do estudante insuficiente."}, status=400)
+                
+            # 2. Executa a transferência de saldo de forma atômica
+            with transaction.atomic():
+                # select_for_update para garantir concorrência segura e evitar double spending
+                conta_est_locked = Conta.objects.select_for_update().get(id=conta_estudante.id)
+                conta_emp_locked = Conta.objects.select_for_update().get(id=conta_empresa.id)
+                
+                # Re-validação de saldo após o lock
+                if conta_est_locked.saldo < produto.valor:
+                    return JsonResponse({"status": "erro", "mensagem": "Saldo do estudante insuficiente."}, status=400)
+                
+                # Deduz do estudante
+                conta_est_locked.saldo -= produto.valor
+                conta_est_locked.save()
+                
+                # Credita na empresa
+                conta_emp_locked.saldo += produto.valor
+                conta_emp_locked.save()
+                
+                # Registra as Transações
+                trans_debito = Transacao.objects.create(
+                    operacao="debito",
+                    valor=produto.valor,
+                    conta=conta_est_locked,
+                    descricao=f"Compra: {produto.nome}"
+                )
+                
+                trans_credito = Transacao.objects.create(
+                    operacao="credito",
+                    valor=produto.valor,
+                    conta=conta_emp_locked,
+                    descricao=f"Venda: {produto.nome} para {estudante.nome()}"
+                )
+                
+                # Registra a Venda
+                Venda.objects.create(
+                    produto=produto,
+                    estudante=estudante,
+                    valor_unidade=produto.valor,
+                    quantidade=1,
+                    valor_total=produto.valor,
+                    transacao=trans_debito
+                )
+                
+            return JsonResponse({"status": "sucesso", "mensagem": "Acesso Autorizado! Débito efetuado."})
+            
+        except Usuario.DoesNotExist:
+            return JsonResponse({"status": "erro", "mensagem": "Estudante não cadastrado ou UUID inválido."}, status=404)
+        except Produto.DoesNotExist:
+            return JsonResponse({"status": "erro", "mensagem": "Produto inválido ou não pertence a esta empresa."}, status=404)
+        except Exception as e:
+            return JsonResponse({"status": "erro", "mensagem": str(e)}, status=500)
