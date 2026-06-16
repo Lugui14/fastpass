@@ -296,3 +296,133 @@ class RegistrarVendaView(LoginRequiredMixin, View):
             return JsonResponse({"status": "erro", "mensagem": "Produto inválido ou não pertence a esta empresa."}, status=404)
         except Exception as e:
             return JsonResponse({"status": "erro", "mensagem": str(e)}, status=500)
+
+
+class SolicitarSaqueView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        if request.user.tipo != "empresa":
+            messages.error(request, "Acesso restrito a estabelecimentos.")
+            return redirect("home")
+            
+        valor_str = request.POST.get("valor")
+        chave_pix = request.POST.get("chave_pix")
+        
+        try:
+            valor = Decimal(valor_str)
+            if valor <= 0:
+                raise ValueError("O valor deve ser positivo.")
+        except (TypeError, ValueError, InvalidOperation):
+            messages.error(request, "Valor de saque inválido.")
+            return redirect("company_dashboard")
+            
+        if not chave_pix:
+            messages.error(request, "Chave Pix de recebimento é obrigatória.")
+            return redirect("company_dashboard")
+            
+        conta = request.user.conta
+        
+        if conta.saldo < valor:
+            messages.error(request, "Saldo insuficiente para o saque solicitado.")
+            return redirect("company_dashboard")
+            
+        try:
+            with transaction.atomic():
+                conta_locked = Conta.objects.select_for_update().get(id=conta.id)
+                
+                if conta_locked.saldo < valor:
+                    messages.error(request, "Saldo insuficiente para o saque solicitado.")
+                    return redirect("company_dashboard")
+                    
+                # 1. Deduct balance from vendor immediately
+                conta_locked.saldo -= valor
+                conta_locked.save()
+                
+                # 2. Create debit transaction
+                transacao = Transacao.objects.create(
+                    operacao="debito",
+                    valor=valor,
+                    conta=conta_locked,
+                    descricao=f"Saque solicitado para chave Pix: {chave_pix}"
+                )
+                
+                # 3. Create withdraw record
+                Saque.objects.create(
+                    transacao=transacao,
+                    situacao="pendente",
+                    metodo_pagamento="pix",
+                    descricao=chave_pix
+                )
+                
+                messages.success(request, f"Solicitação de saque de R$ {valor} enviada com sucesso!")
+        except Exception as e:
+            messages.error(request, f"Erro ao solicitar saque: {str(e)}")
+            
+        return redirect("company_dashboard")
+
+
+class AprovarSaqueView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        if request.user.tipo != "adm" and not request.user.is_superuser:
+            messages.error(request, "Acesso restrito a administradores.")
+            return redirect("home")
+            
+        saque_id = self.kwargs.get("saque_id")
+        try:
+            with transaction.atomic():
+                saque = Saque.objects.select_for_update().get(id=saque_id)
+                if saque.situacao != "pendente":
+                    messages.warning(request, "Este saque já foi processado.")
+                    return redirect("admin_dashboard")
+                    
+                saque.situacao = "aprovado"
+                saque.adm_responsavel = request.user
+                saque.save()
+                
+                messages.success(request, f"Saque de R$ {saque.transacao.valor} aprovado com sucesso!")
+        except Saque.DoesNotExist:
+            messages.error(request, "Solicitação de saque não encontrada.")
+        except Exception as e:
+            messages.error(request, f"Erro ao aprovar saque: {str(e)}")
+            
+        return redirect("admin_dashboard")
+
+
+class RecusarSaqueView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        if request.user.tipo != "adm" and not request.user.is_superuser:
+            messages.error(request, "Acesso restrito a administradores.")
+            return redirect("home")
+            
+        saque_id = self.kwargs.get("saque_id")
+        try:
+            with transaction.atomic():
+                saque = Saque.objects.select_for_update().get(id=saque_id)
+                if saque.situacao != "pendente":
+                    messages.warning(request, "Este saque já foi processado.")
+                    return redirect("admin_dashboard")
+                    
+                saque.situacao = "recusado"
+                saque.adm_responsavel = request.user
+                saque.save()
+                
+                # Devuelve el saldo retornado
+                conta_empresa = saque.transacao.conta
+                conta_locked = Conta.objects.select_for_update().get(id=conta_empresa.id)
+                conta_locked.saldo += saque.transacao.valor
+                conta_locked.save()
+                
+                # Registra transação de estorno (crédito)
+                Transacao.objects.create(
+                    operacao="credito",
+                    valor=saque.transacao.valor,
+                    conta=conta_locked,
+                    descricao=f"Estorno de saque recusado (Saque ID: {saque.id})"
+                )
+                
+                messages.success(request, f"Saque de R$ {saque.transacao.valor} recusado. Saldo estornado para a empresa.")
+        except Saque.DoesNotExist:
+            messages.error(request, "Solicitação de saque não encontrada.")
+        except Exception as e:
+            messages.error(request, f"Erro ao recusar saque: {str(e)}")
+            
+        return redirect("admin_dashboard")

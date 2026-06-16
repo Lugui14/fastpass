@@ -22,7 +22,7 @@
                 <div><strong>Chave Pix:</strong> {{ empresa.dados_saque|default:"Não cadastrada" }}</div>
             </div>
 
-            <button class="btn btn-uffs-accent w-100 py-2 fw-semibold" onclick="alert('Solicitações de saque serão implementadas na Fase 5.');">
+            <button class="btn btn-uffs-accent w-100 py-2 fw-semibold" data-bs-toggle="modal" data-bs-target="#withdrawModal">
                 <i class="fa-solid fa-money-bill-transfer me-1"></i> Solicitar Saque
             </button>
         </div>
@@ -246,4 +246,37 @@
         // Continua lendo silenciosamente
     }
 </script>
+
+<!-- Modal Withdraw (Saque) -->
+<div class="modal fade" id="withdrawModal" tabindex="-1" aria-labelledby="withdrawModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content card-uffs text-light">
+            <form action="{% url 'solicitar_saque' %}" method="POST">
+                {% csrf_token %}
+                <div class="modal-header border-secondary border-opacity-20">
+                    <h5 class="modal-title fw-bold" id="withdrawModalLabel" style="color: var(--uffs-yellow-accent);"><i class="fa-solid fa-money-bill-transfer me-2"></i>Solicitar Saque</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold fs-7">Saldo Disponível</label>
+                        <input type="text" class="form-control form-control-uffs" value="R$ {{ conta.saldo }}" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold fs-7" for="id_chave_pix">Chave Pix para Recebimento</label>
+                        <input type="text" name="chave_pix" id="id_chave_pix" class="form-control form-control-uffs" placeholder="CPF, E-mail, Celular, etc." required value="{{ empresa.dados_saque|default:'' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold fs-7" for="id_valor_saque">Valor do Saque (R$)</label>
+                        <input type="number" name="valor" id="id_valor_saque" step="0.01" min="1.00" max="{{ conta.saldo }}" class="form-control form-control-uffs" placeholder="0,00" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary border-opacity-20">
+                    <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-uffs-primary">Enviar Solicitação</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}

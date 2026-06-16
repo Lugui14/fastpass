@@ -1,7 +1,7 @@
 from decimal import Decimal
 from django.test import TestCase
 from django.contrib.auth import get_user_model
-from core.models import Conta, Estudante, Empresa, Transacao, Deposito, Venda
+from core.models import Conta, Estudante, Empresa, Transacao, Deposito, Venda, Saque
 from core.forms import RegisterForm
 
 Usuario = get_user_model()
@@ -401,3 +401,145 @@ class VendaFlowTest(TestCase):
         self.conta_empresa.refresh_from_db()
         self.assertEqual(self.conta_estudante.saldo, Decimal("50.00"))
         self.assertEqual(self.conta_empresa.saldo, Decimal("10.00"))
+
+
+class SaqueFlowTest(TestCase):
+    def setUp(self):
+        # Create company user
+        self.company_user = Usuario.objects.create_user(
+            email="empresa@uffs.edu.br",
+            nome="RU UFFS",
+            tipo="empresa",
+            password="password123"
+        )
+        self.empresa = Empresa.objects.create(
+            usuario=self.company_user,
+            cnpj="12345678000199",
+            dados_saque="chavepix@uffs.br"
+        )
+        self.conta_empresa = self.company_user.conta
+        self.conta_empresa.saldo = Decimal("500.00")
+        self.conta_empresa.save()
+
+        # Create admin user
+        self.admin_user = Usuario.objects.create_user(
+            email="admin@uffs.edu.br",
+            nome="Admin Master",
+            tipo="adm",
+            password="adminpassword"
+        )
+
+    def test_solicitar_saque_sucesso(self):
+        self.client.login(username="empresa@uffs.edu.br", password="password123")
+        
+        payload = {
+            "valor": "150.00",
+            "chave_pix": "chavepix@uffs.br"
+        }
+        response = self.client.post("/saque/solicitar/", payload, follow=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/dashboard/empresa/")
+        
+        # Check database updates: balance deducted immediately
+        self.conta_empresa.refresh_from_db()
+        self.assertEqual(self.conta_empresa.saldo, Decimal("350.00"))
+        
+        # Verify pending withdraw record
+        transacao = Transacao.objects.filter(conta=self.conta_empresa, operacao="debito").first()
+        self.assertIsNotNone(transacao)
+        self.assertEqual(transacao.valor, Decimal("150.00"))
+        
+        saque = Saque.objects.filter(transacao=transacao).first()
+        self.assertIsNotNone(saque)
+        self.assertEqual(saque.situacao, "pendente")
+        self.assertEqual(saque.descricao, "chavepix@uffs.br")
+
+    def test_solicitar_saque_saldo_insuficiente(self):
+        self.client.login(username="empresa@uffs.edu.br", password="password123")
+        
+        payload = {
+            "valor": "600.00",
+            "chave_pix": "chavepix@uffs.br"
+        }
+        response = self.client.post("/saque/solicitar/", payload, follow=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/dashboard/empresa/")
+        
+        # Check database updates: balance unchanged
+        self.conta_empresa.refresh_from_db()
+        self.assertEqual(self.conta_empresa.saldo, Decimal("500.00"))
+        self.assertEqual(Saque.objects.count(), 0)
+
+    def test_aprovar_saque_sucesso(self):
+        # Setup pending saque
+        transacao = Transacao.objects.create(
+            operacao="debito",
+            valor=Decimal("100.00"),
+            conta=self.conta_empresa,
+            descricao="Saque solicitado para chave Pix: chavepix@uffs.br"
+        )
+        saque = Saque.objects.create(
+            transacao=transacao,
+            situacao="pendente",
+            metodo_pagamento="pix",
+            descricao="chavepix@uffs.br"
+        )
+        
+        # Deduct balance as if requested
+        self.conta_empresa.saldo = Decimal("400.00")
+        self.conta_empresa.save()
+        
+        # Admin log in and approve
+        self.client.login(username="admin@uffs.edu.br", password="adminpassword")
+        
+        response = self.client.post(f"/saque/aprovar/{saque.id}/", follow=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/dashboard/admin/")
+        
+        # Check database: status changed to aprovado, admin recorded, balance remains 400.00
+        saque.refresh_from_db()
+        self.assertEqual(saque.situacao, "aprovado")
+        self.assertEqual(saque.adm_responsavel, self.admin_user)
+        
+        self.conta_empresa.refresh_from_db()
+        self.assertEqual(self.conta_empresa.saldo, Decimal("400.00"))
+
+    def test_recusar_saque_sucesso_com_estorno(self):
+        # Setup pending saque
+        transacao = Transacao.objects.create(
+            operacao="debito",
+            valor=Decimal("100.00"),
+            conta=self.conta_empresa,
+            descricao="Saque solicitado para chave Pix: chavepix@uffs.br"
+        )
+        saque = Saque.objects.create(
+            transacao=transacao,
+            situacao="pendente",
+            metodo_pagamento="pix",
+            descricao="chavepix@uffs.br"
+        )
+        
+        # Deduct balance as if requested
+        self.conta_empresa.saldo = Decimal("400.00")
+        self.conta_empresa.save()
+        
+        # Admin log in and reject
+        self.client.login(username="admin@uffs.edu.br", password="adminpassword")
+        
+        response = self.client.post(f"/saque/recusar/{saque.id}/", follow=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/dashboard/admin/")
+        
+        # Check database: status changed to recusado, admin recorded
+        saque.refresh_from_db()
+        self.assertEqual(saque.situacao, "recusado")
+        self.assertEqual(saque.adm_responsavel, self.admin_user)
+        
+        # Balance restored to 500.00
+        self.conta_empresa.refresh_from_db()
+        self.assertEqual(self.conta_empresa.saldo, Decimal("500.00"))
+        
+        # Compensating credit transaction created
+        estorno_trans = Transacao.objects.filter(conta=self.conta_empresa, operacao="credito").first()
+        self.assertIsNotNone(estorno_trans)
+        self.assertEqual(estorno_trans.valor, Decimal("100.00"))

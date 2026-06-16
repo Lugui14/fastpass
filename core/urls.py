@@ -18,4 +18,9 @@ urlpatterns = [
     
     # Validação de Entrada / Vendas
     path("api/vender/", views.RegistrarVendaView.as_view(), name="api_registrar_venda"),
+    
+    # Saques e Moderação Administrativa
+    path("saque/solicitar/", views.SolicitarSaqueView.as_view(), name="solicitar_saque"),
+    path("saque/aprovar/<int:saque_id>/", views.AprovarSaqueView.as_view(), name="aprovar_saque"),
+    path("saque/recusar/<int:saque_id>/", views.RecusarSaqueView.as_view(), name="recusar_saque"),
 ]
