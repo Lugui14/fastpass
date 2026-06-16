@@ -1,0 +1,79 @@
+{% extends "core/base.html" %}
+
+{% block title %}Checkout Depósito - FastPass UFFS{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center my-4 animate__animated animate__fadeIn">
+    <div class="col-12 col-md-8 col-lg-6">
+        <div class="card card-uffs p-4">
+            
+            <div class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom border-secondary border-opacity-15">
+                <h3 class="fw-bold mb-0" style="color: var(--uffs-yellow-accent);">
+                    <i class="fa-solid fa-qrcode me-1"></i> Pagamento PIX
+                </h3>
+                <span class="badge badge-credit px-2 py-1 rounded-pill">Pendente</span>
+            </div>
+
+            <div class="text-center mb-4">
+                <div class="text-muted fs-7 text-uppercase tracking-wider">Valor do Depósito</div>
+                <div class="fw-bold fs-1 text-success">R$ {{ deposito.valor }}</div>
+            </div>
+
+            <!-- QR Code Box -->
+            <div class="text-center mb-4">
+                <div class="d-inline-block p-3 bg-white rounded-3 mb-2 shadow">
+                    <img src="{{ payment.qr_code_image_url }}" alt="QR Code PIX" style="width: 200px; height: 200px;">
+                </div>
+                <div class="text-muted fs-7">Escaneie o código com o app do seu banco</div>
+            </div>
+
+            <!-- Copia e Cola -->
+            <div class="mb-4">
+                <label class="form-label fw-semibold text-muted fs-7">PIX Copia e Cola</label>
+                <div class="input-group">
+                    <input type="text" id="pixCode" class="form-control form-control-uffs fs-7" value="{{ payment.qr_code_copy_paste }}" readonly>
+                    <button class="btn btn-uffs-accent" type="button" onclick="copyPixCode()">
+                        <i class="fa-solid fa-copy"></i> Copiar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Simulação de Pagamento para Desenvolvimento -->
+            <div class="mt-4 pt-4 border-top border-secondary border-opacity-20 text-center">
+                <div class="alert alert-warning text-dark border-0 p-3 mb-3" style="background-color: rgba(251, 191, 36, 0.15);">
+                    <h5 class="fw-bold fs-6 mb-1 text-warning-emphasis"><i class="fa-solid fa-flask me-1"></i> Ambiente de Homologação</h5>
+                    <p class="fs-7 mb-0 text-white-50">Use o botão abaixo para simular que o pagamento do PIX foi efetuado pelo aplicativo do banco.</p>
+                </div>
+                
+                <form action="{% url 'confirmar_deposito_simulacao' transacao.id %}" method="POST">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-uffs-primary py-2 px-4">
+                        <i class="fa-solid fa-circle-check me-1"></i> Simular Pagamento do PIX
+                    </button>
+                </form>
+            </div>
+
+            <div class="text-center mt-4">
+                <a href="{% url 'student_dashboard' %}" class="text-decoration-none text-muted fs-7">
+                    <i class="fa-solid fa-arrow-left me-1"></i> Voltar à carteira
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    function copyPixCode() {
+        var copyText = document.getElementById("pixCode");
+        copyText.select();
+        copyText.setSelectionRange(0, 99999); // For mobile devices
+        
+        navigator.clipboard.writeText(copyText.value).then(function() {
+            alert("Código PIX copiado para a área de transferência!");
+        }, function() {
+            alert("Erro ao copiar o código. Por favor, copie manualmente.");
+        });
+    }
+</script>
+{% endblock %}

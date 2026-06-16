@@ -41,10 +41,17 @@
         <!-- Depósito Rápido -->
         <div class="card card-uffs p-4">
             <h4 class="fw-bold mb-2" style="color: var(--uffs-yellow-accent);"><i class="fa-solid fa-wallet me-1"></i> Recarregar Saldo</h4>
-            <p class="text-muted fs-7 mb-4">Adicione fundos à sua carteira digital via PIX instantâneo.</p>
-            <button class="btn btn-uffs-primary w-100 py-2" onclick="alert('Funcionalidade de Depósito PIX será integrada na Fase 3.');">
-                <i class="fa-solid fa-plus me-1"></i> Efetuar Depósito
-            </button>
+            <p class="text-muted fs-7 mb-3">Adicione fundos à sua carteira digital via PIX instantâneo.</p>
+            <form action="{% url 'solicitar_deposito' %}" method="POST">
+                {% csrf_token %}
+                <div class="input-group mb-3">
+                    <span class="input-group-text bg-dark border-secondary text-light" style="border: 1px solid var(--border-color);">R$</span>
+                    <input type="number" name="valor" step="0.01" min="1.00" class="form-control form-control-uffs" placeholder="0,00" required>
+                </div>
+                <button type="submit" class="btn btn-uffs-primary w-100 py-2">
+                    <i class="fa-solid fa-plus me-1"></i> Efetuar Depósito
+                </button>
+            </form>
         </div>
 
     </div>

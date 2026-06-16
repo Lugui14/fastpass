@@ -1,6 +1,7 @@
+from decimal import Decimal
 from django.test import TestCase
 from django.contrib.auth import get_user_model
-from core.models import Conta, Estudante, Empresa
+from core.models import Conta, Estudante, Empresa, Transacao, Deposito
 from core.forms import RegisterForm
 
 Usuario = get_user_model()
@@ -160,3 +161,120 @@ class DashboardViewsTest(TestCase):
         response = self.client.get("/dashboard/estudante/", follow=False)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response["Location"], "/")
+
+
+class DepositFlowTest(TestCase):
+    def setUp(self):
+        # Create student
+        self.student_user = Usuario.objects.create_user(
+            email="estudante@uffs.edu.br",
+            nome="Estudante Teste",
+            tipo="estudante",
+            password="password123"
+        )
+        Estudante.objects.create(
+            usuario=self.student_user,
+            cpf="12345678901",
+            matricula="2211100006"
+        )
+        # Account is created automatically via signals. Let's make sure it has 0.00
+        self.conta = self.student_user.conta
+        self.conta.saldo = 0.00
+        self.conta.save()
+
+    def test_solicitar_deposito_cria_transacao_e_deposito_pendentes(self):
+        self.client.login(username="estudante@uffs.edu.br", password="password123")
+        
+        # Post a deposit request of 50.00
+        response = self.client.post("/deposito/solicitar/", {"valor": "50.00"}, follow=False)
+        
+        # Should redirect to checkout
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify transaction and deposit creation
+        transacao = Transacao.objects.filter(conta=self.conta, operacao="credito").first()
+        self.assertIsNotNone(transacao)
+        self.assertEqual(transacao.valor, 0.00) # Pending
+        
+        deposito = Deposito.objects.filter(transacao=transacao).first()
+        self.assertIsNotNone(deposito)
+        self.assertEqual(deposito.valor, Decimal("50.00"))
+        self.assertEqual(deposito.situacao, "pendente")
+        self.assertEqual(deposito.metodo_pagamento, "pix")
+        
+        self.assertEqual(response["Location"], f"/deposito/checkout/{transacao.id}/")
+
+    def test_confirmar_deposito_simulacao_atualiza_saldo_e_transacao(self):
+        self.client.login(username="estudante@uffs.edu.br", password="password123")
+        
+        # Create pending deposit manually
+        transacao = Transacao.objects.create(
+            operacao="credito",
+            valor=0.00,
+            conta=self.conta,
+            descricao="Recarga PIX pendente"
+        )
+        deposito = Deposito.objects.create(
+            transacao=transacao,
+            valor=Decimal("75.50"),
+            situacao="pendente",
+            metodo_pagamento="pix",
+            descricao="PIX-DEP-MOCK"
+        )
+        
+        # Call simulation confirm POST
+        response = self.client.post(f"/deposito/confirmar-simulacao/{transacao.id}/", follow=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/dashboard/estudante/")
+        
+        # Check database updates
+        self.conta.refresh_from_db()
+        self.assertEqual(self.conta.saldo, Decimal("75.50"))
+        
+        deposito.refresh_from_db()
+        self.assertEqual(deposito.situacao, "confirmado")
+        
+        transacao.refresh_from_db()
+        self.assertEqual(transacao.valor, Decimal("75.50"))
+
+    def test_webhook_confirmacao_deposito_e_idempotencia(self):
+        # Create pending deposit manually
+        transacao = Transacao.objects.create(
+            operacao="credito",
+            valor=0.00,
+            conta=self.conta,
+            descricao="Recarga PIX pendente"
+        )
+        deposito = Deposito.objects.create(
+            transacao=transacao,
+            valor=Decimal("120.00"),
+            situacao="pendente",
+            metodo_pagamento="pix",
+            descricao="PIX-DEP-MOCK"
+        )
+        
+        # Call webhook POST
+        import json
+        payload = {"deposito_id": deposito.id, "valor": "120.00"}
+        response = self.client.post(
+            "/api/pagamentos/confirmar/",
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 200)
+        
+        self.conta.refresh_from_db()
+        self.assertEqual(self.conta.saldo, Decimal("120.00"))
+        
+        # Test Idempotency: call webhook again with same payload
+        response2 = self.client.post(
+            "/api/pagamentos/confirmar/",
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+        # Should return 400 or handle gracefully
+        self.assertEqual(response2.status_code, 400)
+        
+        # Balance should still be 120.00 (not duplicated to 240.00!)
+        self.conta.refresh_from_db()
+        self.assertEqual(self.conta.saldo, Decimal("120.00"))
