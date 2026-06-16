@@ -1,0 +1,282 @@
+{% extends "core/base.html" %}
+
+{% block title %}Cadastro - FastPass{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-container {
+        max-width: 550px;
+        margin: 2rem auto;
+        padding: 2.5rem;
+        background-color: var(--glass-bg);
+        backdrop-filter: var(--glass-blur);
+        border: 1px solid var(--card-border);
+        border-radius: 16px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        animation: fadeIn 0.4s ease;
+    }
+
+    .auth-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        text-align: center;
+        background: var(--gradient-accent);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .auth-subtitle {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .form-row .form-group {
+        flex: 1;
+    }
+
+    .form-label {
+        font-weight: 500;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+    }
+
+    .form-control {
+        background-color: rgba(15, 23, 42, 0.6);
+        border: 1px solid var(--card-border);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        color: var(--text-primary);
+        font-family: inherit;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+        outline: none;
+        width: 100%;
+    }
+
+    .form-control:focus {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+    }
+
+    .error-list {
+        color: var(--danger);
+        font-size: 0.85rem;
+        list-style: none;
+        margin-top: 0.2rem;
+    }
+
+    .conditional-section {
+        border-top: 1px solid var(--card-border);
+        padding-top: 1.5rem;
+        margin-top: 1.5rem;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .btn-submit {
+        background: var(--gradient-accent);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        width: 100%;
+        margin-top: 1.5rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    }
+
+    .auth-footer {
+        text-align: center;
+        margin-top: 1.5rem;
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+
+    .auth-link {
+        color: var(--accent-color);
+        text-decoration: none;
+        font-weight: 600;
+        transition: color 0.2s;
+    }
+
+    .auth-link:hover {
+        color: var(--text-primary);
+        text-decoration: underline;
+    }
+
+    @media (max-width: 576px) {
+        .form-row {
+            flex-direction: column;
+            gap: 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <h2 class="auth-title">Crie sua conta</h2>
+    <p class="auth-subtitle">Modernize seu acesso ao RU da UFFS</p>
+    
+    <form method="POST">
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+        
+        <div class="form-group">
+            <label class="form-label" for="{{ form.nome.id_for_label }}">{{ form.nome.label }}</label>
+            {{ form.nome }}
+            {% if form.nome.errors %}
+                <ul class="error-list">{% for error in form.nome.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+            {% endif %}
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                    <ul class="error-list">{% for error in form.email.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="{{ form.tipo.id_for_label }}">{{ form.tipo.label }}</label>
+                {{ form.tipo }}
+                {% if form.tipo.errors %}
+                    <ul class="error-list">{% for error in form.tipo.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+                {{ form.password }}
+                {% if form.password.errors %}
+                    <ul class="error-list">{% for error in form.password.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="{{ form.confirm_password.id_for_label }}">{{ form.confirm_password.label }}</label>
+                {{ form.confirm_password }}
+                {% if form.confirm_password.errors %}
+                    <ul class="error-list">{% for error in form.confirm_password.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Estudante Fields Section -->
+        <div id="estudante-fields" class="conditional-section">
+            <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--accent-color);"><i class="fa-solid fa-graduation-cap"></i> Dados do Estudante</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.cpf.id_for_label }}">{{ form.cpf.label }}</label>
+                    {{ form.cpf }}
+                    {% if form.cpf.errors %}
+                        <ul class="error-list">{% for error in form.cpf.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.matricula.id_for_label }}">{{ form.matricula.label }}</label>
+                    {{ form.matricula }}
+                    {% if form.matricula.errors %}
+                        <ul class="error-list">{% for error in form.matricula.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="{{ form.data_nascimento.id_for_label }}">{{ form.data_nascimento.label }}</label>
+                {{ form.data_nascimento }}
+                {% if form.data_nascimento.errors %}
+                    <ul class="error-list">{% for error in form.data_nascimento.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Empresa Fields Section -->
+        <div id="empresa-fields" class="conditional-section">
+            <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--accent-color);"><i class="fa-solid fa-building"></i> Dados do Estabelecimento</h3>
+            <div class="form-group">
+                <label class="form-label" for="{{ form.cnpj.id_for_label }}">{{ form.cnpj.label }}</label>
+                {{ form.cnpj }}
+                {% if form.cnpj.errors %}
+                    <ul class="error-list">{% for error in form.cnpj.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="{{ form.dados_saque.id_for_label }}">{{ form.dados_saque.label }}</label>
+                {{ form.dados_saque }}
+                {% if form.dados_saque.errors %}
+                    <ul class="error-list">{% for error in form.dados_saque.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                {% endif %}
+            </div>
+        </div>
+        
+        <button type="submit" class="btn-submit">
+            Cadastrar <i class="fa-solid fa-user-plus"></i>
+        </button>
+    </form>
+    
+    <div class="auth-footer">
+        Já tem uma conta? <a href="{% url 'login' %}" class="auth-link">Entrar</a>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var tipoSelect = document.getElementById("{{ form.tipo.id_for_label }}");
+        var estudanteSection = document.getElementById("estudante-fields");
+        var empresaSection = document.getElementById("empresa-fields");
+        
+        function toggleSections() {
+            var selectedValue = tipoSelect.value;
+            if (selectedValue === "estudante") {
+                estudanteSection.style.display = "block";
+                empresaSection.style.display = "none";
+            } else if (selectedValue === "empresa") {
+                estudanteSection.style.display = "none";
+                empresaSection.style.display = "block";
+            } else {
+                estudanteSection.style.display = "none";
+                empresaSection.style.display = "none";
+            }
+        }
+        
+        tipoSelect.addEventListener("change", toggleSections);
+        toggleSections(); // run once on page load
+    });
+</script>
+{% endblock %}

@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.conf import settings
@@ -43,6 +44,7 @@ class Usuario(AbstractUser):
     nome = models.CharField(max_length=100)
     email = models.CharField(max_length=150, unique=True)
     tipo = models.CharField(max_length=10, choices=TIPOS)
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["nome", "tipo"]
@@ -125,14 +127,14 @@ class Venda(models.Model):
 
 
 class Saque(models.Model):
-    SITUACAO = [
+    SITUACOES = [
         ("pendente", "Pendente"),
         ("aprovado", "Aprovado"),
         ("recusado", "Recusado"),
     ]
 
     transacao = models.OneToOneField(Transacao, on_delete=models.PROTECT, related_name="saque")
-    situacao = models.CharField(max_length=10, default="pendente", choices=SITUACAO)
+    situacao = models.CharField(max_length=10, default="pendente", choices=SITUACOES)
     metodo_pagamento = models.CharField(max_length=255)
     descricao = models.TextField()
     adm_responsavel = models.ForeignKey(
