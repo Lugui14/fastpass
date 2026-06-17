@@ -778,23 +778,35 @@ class ProfileEditAndAdminRestrictionTest(TestCase):
             dados_saque="chavepix@uffs.edu.br"
         )
 
-    def test_registro_exclui_possibilidade_de_criar_administrador(self):
-        # 1. Verifica se choices no RegisterForm não incluem 'adm'
+    def test_registro_administrador_com_codigo_secreto(self):
+        # 1. Verifica se choices no RegisterForm incluem 'adm'
         form = RegisterForm()
         tipo_choices = [choice[0] for choice in form.fields["tipo"].choices]
-        self.assertNotIn("adm", tipo_choices)
+        self.assertIn("adm", tipo_choices)
         
-        # 2. Verifica se o clean_tipo explicitamente rejeita 'adm'
+        # 2. Cadastro de admin com código secreto incorreto (deve falhar)
         form_data = {
             "nome": "Tentativa Admin",
             "email": "hacker@uffs.edu.br",
             "tipo": "adm",
-            "password": "hackpassword",
-            "confirm_password": "hackpassword",
+            "password": "hackpassword123",
+            "confirm_password": "hackpassword123",
+            "codigo_admin": "senha_errada"
         }
         form = RegisterForm(data=form_data)
         self.assertFalse(form.is_valid())
-        self.assertIn("tipo", form.errors)
+        self.assertIn("codigo_admin", form.errors)
+        
+        # 3. Cadastro de admin com código secreto correto (deve ter sucesso)
+        from django.test import override_settings
+        with override_settings(ADMIN_REGISTRATION_SECRET="segredoteste"):
+            form_data["codigo_admin"] = "segredoteste"
+            form = RegisterForm(data=form_data)
+            self.assertTrue(form.is_valid(), form.errors)
+            user = form.save()
+            self.assertEqual(user.tipo, "adm")
+            self.assertTrue(user.is_staff)
+            self.assertTrue(user.is_superuser)
 
     def test_acesso_perfil_editar_requer_login(self):
         response = self.client.get("/perfil/editar/", follow=False)
