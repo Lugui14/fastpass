@@ -1,0 +1,103 @@
+{% extends "core/base.html" %}
+
+{% block title %}Editar Perfil - FastPass UFFS{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center my-4 animate__animated animate__fadeIn">
+    <div class="col-12 col-sm-10 col-md-8 col-lg-6">
+        <div class="card card-uffs p-4 p-md-5">
+            <h2 class="text-center fw-bold mb-2" style="color: var(--uffs-yellow-accent);">Editar seu Perfil</h2>
+            <p class="text-center text-muted mb-4 fs-6">Mantenha seus dados atualizados no FastPass</p>
+            
+            <form method="POST">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger mb-4">
+                        {% for error in form.non_field_errors %}
+                            <p class="mb-0">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                
+                <!-- Nome -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="{{ form.nome.id_for_label }}">{{ form.nome.label }}</label>
+                    {{ form.nome }}
+                    {% if form.nome.errors %}
+                        <div class="text-danger fs-7 mt-1">{% for error in form.nome.errors %}{{ error }}{% endfor %}</div>
+                    {% endif %}
+                </div>
+                
+                <!-- Email -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                        <div class="text-danger fs-7 mt-1">{% for error in form.email.errors %}{{ error }}{% endfor %}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Estudante Fields (CPF, Matricula, Nascimento) -->
+                {% if form.cpf %}
+                    <div class="row mb-3">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <label class="form-label fw-semibold" for="{{ form.cpf.id_for_label }}">{{ form.cpf.label }}</label>
+                            {{ form.cpf }}
+                            <div class="form-text fs-8 text-white-50">Não editável</div>
+                            {% if form.cpf.errors %}
+                                <div class="text-danger fs-7 mt-1">{% for error in form.cpf.errors %}{{ error }}{% endfor %}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" for="{{ form.matricula.id_for_label }}">{{ form.matricula.label }}</label>
+                            {{ form.matricula }}
+                            <div class="form-text fs-8 text-white-50">Não editável</div>
+                            {% if form.matricula.errors %}
+                                <div class="text-danger fs-7 mt-1">{% for error in form.matricula.errors %}{{ error }}{% endfor %}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="{{ form.data_nascimento.id_for_label }}">{{ form.data_nascimento.label }}</label>
+                        {{ form.data_nascimento }}
+                        {% if form.data_nascimento.errors %}
+                            <div class="text-danger fs-7 mt-1">{% for error in form.data_nascimento.errors %}{{ error }}{% endfor %}</div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                <!-- Empresa Fields (CNPJ, Dados Saque) -->
+                {% if form.cnpj %}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="{{ form.cnpj.id_for_label }}">{{ form.cnpj.label }}</label>
+                        {{ form.cnpj }}
+                        <div class="form-text fs-8 text-white-50">Não editável</div>
+                        {% if form.cnpj.errors %}
+                            <div class="text-danger fs-7 mt-1">{% for error in form.cnpj.errors %}{{ error }}{% endfor %}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="{{ form.dados_saque.id_for_label }}">{{ form.dados_saque.label }}</label>
+                        {{ form.dados_saque }}
+                        {% if form.dados_saque.errors %}
+                            <div class="text-danger fs-7 mt-1">{% for error in form.dados_saque.errors %}{{ error }}{% endfor %}</div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+                
+                <div class="d-flex justify-content-between align-items-center mt-4">
+                    <a href="{% url 'home' %}" class="btn btn-outline-light rounded-pill px-4 fs-7">
+                        <i class="fa-solid fa-arrow-left me-1"></i> Voltar
+                    </a>
+                    <button type="submit" class="btn btn-uffs-primary rounded-pill px-4 fs-7 py-2">
+                        <i class="fa-solid fa-save me-1"></i> Salvar Alterações
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

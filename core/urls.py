@@ -26,4 +26,7 @@ urlpatterns = [
     
     # Cadastro de Produtos
     path("produto/criar/", views.CriarProdutoView.as_view(), name="criar_produto"),
+    
+    # Perfil do Usuário
+    path("perfil/editar/", views.EditarPerfilView.as_view(), name="editar_perfil"),
 ]

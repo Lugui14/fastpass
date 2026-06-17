@@ -750,3 +750,105 @@ class ProdutoFlowTest(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response["Location"], "/")
         self.assertEqual(Produto.objects.count(), 0)
+
+
+class ProfileEditAndAdminRestrictionTest(TestCase):
+    def setUp(self):
+        self.student_user = Usuario.objects.create_user(
+            email="student@uffs.edu.br",
+            nome="Luiz Estudante",
+            tipo="estudante",
+            password="password123"
+        )
+        Estudante.objects.create(
+            usuario=self.student_user,
+            cpf="12345678901",
+            matricula="2211100006"
+        )
+        
+        self.company_user = Usuario.objects.create_user(
+            email="company@uffs.edu.br",
+            nome="UFFS Cantina",
+            tipo="empresa",
+            password="password123"
+        )
+        Empresa.objects.create(
+            usuario=self.company_user,
+            cnpj="12345678000199",
+            dados_saque="chavepix@uffs.edu.br"
+        )
+
+    def test_registro_exclui_possibilidade_de_criar_administrador(self):
+        # 1. Verifica se choices no RegisterForm não incluem 'adm'
+        form = RegisterForm()
+        tipo_choices = [choice[0] for choice in form.fields["tipo"].choices]
+        self.assertNotIn("adm", tipo_choices)
+        
+        # 2. Verifica se o clean_tipo explicitamente rejeita 'adm'
+        form_data = {
+            "nome": "Tentativa Admin",
+            "email": "hacker@uffs.edu.br",
+            "tipo": "adm",
+            "password": "hackpassword",
+            "confirm_password": "hackpassword",
+        }
+        form = RegisterForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertIn("tipo", form.errors)
+
+    def test_acesso_perfil_editar_requer_login(self):
+        response = self.client.get("/perfil/editar/", follow=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response["Location"].startswith("/login/"))
+
+    def test_estudante_pode_editar_nome_email_nascimento(self):
+        self.client.login(username="student@uffs.edu.br", password="password123")
+        
+        # Carrega o form e verifica se os valores iniciais estão corretos
+        response = self.client.get("/perfil/editar/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Luiz Estudante")
+        self.assertContains(response, "student@uffs.edu.br")
+        self.assertContains(response, "12345678901") # CPF é exibido como readonly
+        
+        # Envia alterações válidas
+        payload = {
+            "nome": "Luiz Zanella Lopes",
+            "email": "luiz.lopes@estudante.uffs.edu.br",
+            "cpf": "99999999999", # Deve ser ignorado pelo backend
+            "matricula": "9999999999", # Deve ser ignorado pelo backend
+            "data_nascimento": "2000-01-01"
+        }
+        response = self.client.post("/perfil/editar/", payload, follow=False)
+        self.assertEqual(response.status_code, 302)
+        
+        # Verifica atualização no banco
+        self.student_user.refresh_from_db()
+        self.assertEqual(self.student_user.nome, "Luiz Zanella Lopes")
+        self.assertEqual(self.student_user.email, "luiz.lopes@estudante.uffs.edu.br")
+        
+        estudante = self.student_user.estudante_perfil
+        self.assertEqual(estudante.data_nascimento.date().isoformat(), "2000-01-01")
+        # CPF e Matrícula não podem ser modificados
+        self.assertEqual(estudante.cpf, "12345678901")
+        self.assertEqual(estudante.matricula, "2211100006")
+
+    def test_empresa_pode_editar_nome_email_dados_saque(self):
+        self.client.login(username="company@uffs.edu.br", password="password123")
+        
+        payload = {
+            "nome": "Cantina UFFS Editada",
+            "email": "cantina.nova@uffs.edu.br",
+            "cnpj": "99999999999999", # Deve ser ignorado pelo backend
+            "dados_saque": "novachave@uffs.edu.br"
+        }
+        response = self.client.post("/perfil/editar/", payload, follow=False)
+        self.assertEqual(response.status_code, 302)
+        
+        self.company_user.refresh_from_db()
+        self.assertEqual(self.company_user.nome, "Cantina UFFS Editada")
+        self.assertEqual(self.company_user.email, "cantina.nova@uffs.edu.br")
+        
+        empresa = self.company_user.empresa_perfil
+        self.assertEqual(empresa.cnpj, "12345678000199")
+        self.assertEqual(empresa.dados_saque, "novachave@uffs.edu.br")

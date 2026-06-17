@@ -200,6 +200,5 @@ O endpoint `/api/pagamentos/confirmar/` escuta as notificações enviadas pela A
     Caso a chave `ABACATE_PAY_WEBHOOK_SECRET` esteja configurada no `.env` da aplicação, o webhook obrigatoriamente valida a autenticidade da requisição calculando o HMAC-SHA256 do corpo da requisição bruta (*raw body*) com a chave secreta e comparando com o valor presente no cabeçalho `X-Webhook-Signature`.
 2.  **Processamento de Eventos:**
     Somente eventos do tipo `billing.paid` que tenham `status` igual a `PAID` são processados. O saldo correspondente é incrementado de forma atômica no banco de dados e a transação é confirmada.
-3.  **Retrocompatibilidade:**
+3. **Retrocompatibilidade:**
     O webhook preserva retrocompatibilidade com o formato de simulação de desenvolvimento simplificado (enviando `deposito_id` e `valor` diretamente), garantindo a estabilidade de testes unitários legados.
-

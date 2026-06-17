@@ -10,7 +10,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from .forms import RegisterForm
+from .forms import RegisterForm, EditarPerfilForm
 from .models import Transacao, Venda, Saque, Deposito, Usuario, Estudante, Empresa, Conta, Produto
 from .services.payment import AbacatePayGateway, confirmar_deposito
 
@@ -517,3 +517,19 @@ class CriarProdutoView(LoginRequiredMixin, View):
             messages.error(request, f"Erro ao cadastrar produto: {str(e)}")
             
         return redirect("company_dashboard")
+
+
+class EditarPerfilView(LoginRequiredMixin, View):
+    template_name = "core/editar_perfil.html"
+
+    def get(self, request, *args, **kwargs):
+        form = EditarPerfilForm(instance=request.user)
+        return render(request, self.template_name, {"form": form})
+
+    def post(self, request, *args, **kwargs):
+        form = EditarPerfilForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Perfil atualizado com sucesso!")
+            return redirect("editar_perfil")
+        return render(request, self.template_name, {"form": form})
