@@ -11,17 +11,14 @@ class RegisterForm(forms.ModelForm):
         ("empresa", "Empresa"),
     ]
 
-    # Common fields
     password = forms.CharField(label="Senha", widget=forms.PasswordInput(attrs={"class": "form-control", "placeholder": "Digite sua senha"}), min_length=6)
     confirm_password = forms.CharField(label="Confirme a Senha", widget=forms.PasswordInput(attrs={"class": "form-control", "placeholder": "Confirme sua senha"}))
     tipo = forms.ChoiceField(label="Tipo de Conta", choices=TIPO_CHOICES, widget=forms.Select(attrs={"class": "form-control"}))
     
-    # Estudante fields
     cpf = forms.CharField(label="CPF", required=False, widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "CPF (apenas números)"}), max_length=12)
     matricula = forms.CharField(label="Matrícula", required=False, widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Matrícula"}), max_length=15)
     data_nascimento = forms.DateField(label="Data de Nascimento", required=False, widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}))
     
-    # Empresa fields
     cnpj = forms.CharField(label="CNPJ", required=False, widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "CNPJ (apenas números)"}), max_length=14)
     dados_saque = forms.CharField(label="Dados para Saque (Pix, etc.)", required=False, widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Sua chave Pix"}))
 
@@ -57,7 +54,6 @@ class RegisterForm(forms.ModelForm):
         if password and confirm_password and password != confirm_password:
             self.add_error("confirm_password", "As senhas não coincidem.")
 
-        # Conditional validation based on tipo
         if tipo == "estudante":
             cpf = cleaned_data.get("cpf")
             matricula = cleaned_data.get("matricula")
@@ -97,12 +93,10 @@ class RegisterForm(forms.ModelForm):
 
 
 class EditarPerfilForm(forms.ModelForm):
-    # Estudante fields
     cpf = forms.CharField(label="CPF", required=False, widget=forms.TextInput(attrs={"class": "form-control form-control-uffs", "readonly": "readonly"}))
     matricula = forms.CharField(label="Matrícula", required=False, widget=forms.TextInput(attrs={"class": "form-control form-control-uffs", "readonly": "readonly"}))
     data_nascimento = forms.DateField(label="Data de Nascimento", required=False, widget=forms.DateInput(attrs={"class": "form-control form-control-uffs", "type": "date"}))
     
-    # Empresa fields
     cnpj = forms.CharField(label="CNPJ", required=False, widget=forms.TextInput(attrs={"class": "form-control form-control-uffs", "readonly": "readonly"}))
     dados_saque = forms.CharField(label="Dados para Saque (Pix, etc.)", required=False, widget=forms.TextInput(attrs={"class": "form-control form-control-uffs", "placeholder": "Sua chave Pix"}))
 
@@ -123,19 +117,16 @@ class EditarPerfilForm(forms.ModelForm):
                 self.fields["cpf"].initial = perfil.cpf
                 self.fields["matricula"].initial = perfil.matricula
                 self.fields["data_nascimento"].initial = perfil.data_nascimento
-                # Remove fields not applicable to estudantes
                 self.fields.pop("cnpj", None)
                 self.fields.pop("dados_saque", None)
             elif tipo == "empresa" and hasattr(self.instance, "empresa_perfil"):
                 perfil = self.instance.empresa_perfil
                 self.fields["cnpj"].initial = perfil.cnpj
                 self.fields["dados_saque"].initial = perfil.dados_saque
-                # Remove fields not applicable to empresas
                 self.fields.pop("cpf", None)
                 self.fields.pop("matricula", None)
                 self.fields.pop("data_nascimento", None)
             else:
-                # Admins / others
                 self.fields.pop("cpf", None)
                 self.fields.pop("matricula", None)
                 self.fields.pop("data_nascimento", None)

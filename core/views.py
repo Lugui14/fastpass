@@ -67,7 +67,6 @@ class StudentDashboardView(LoginRequiredMixin, TemplateView):
         user = self.request.user
         context["estudante"] = user.estudante_perfil
         context["conta"] = user.conta
-        # List of transactions for this student
         context["transacoes"] = Transacao.objects.filter(conta=user.conta).order_by("-data_hora")[:10]
         return context
 
@@ -87,7 +86,6 @@ class CompanyDashboardView(LoginRequiredMixin, TemplateView):
         context["empresa"] = user.empresa_perfil
         context["conta"] = user.conta
         context["produtos"] = user.empresa_perfil.produtos.all()
-        # List of transactions for this company
         context["transacoes"] = Transacao.objects.filter(conta=user.conta).order_by("-data_hora")[:10]
         return context
 
@@ -103,7 +101,6 @@ class AdminDashboardView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # List pending withdraws
         context["saques_pendentes"] = Saque.objects.filter(situacao="pendente").order_by("-transacao__data_hora")
         return context
 
@@ -123,15 +120,13 @@ class SolicitarDepositoView(LoginRequiredMixin, View):
             messages.error(request, "Valor de recarga inválido.")
             return redirect("student_dashboard")
 
-        # 1. Criar Transação pendente
         transacao = Transacao.objects.create(
             operacao="credito",
-            valor=0.00,  # Fica 0.00 até ser verificado
+            valor=0.00,
             conta=request.user.conta,
             descricao="Recarga PIX pendente"
         )
         
-        # 2. Criar Depósito pendente
         Deposito.objects.create(
             transacao=transacao,
             valor=valor,
@@ -140,11 +135,9 @@ class SolicitarDepositoView(LoginRequiredMixin, View):
             descricao=f"PIX-DEP-{transacao.id}"
         )
         
-        # 3. Chamar Gateway Abacate Pay
         gateway = AbacatePayGateway()
         payment_data = gateway.gerar_pix_deposito(valor, transacao.id)
         
-        # Salva na sessão para exibição no checkout
         request.session[f"checkout_{transacao.id}"] = payment_data
         
         return redirect("checkout_deposito", transacao_id=transacao.id)
@@ -162,7 +155,6 @@ class CheckoutDepositoView(LoginRequiredMixin, TemplateView):
             context["transacao"] = transacao
             context["deposito"] = deposito
             
-            # Recupera dados gerados pelo gateway
             payment_data = self.request.session.get(f"checkout_{transacao_id}")
             if not payment_data:
                 gateway = AbacatePayGateway()
@@ -228,22 +220,18 @@ class ConfirmarDepositoWebhookView(View):
     def post(self, request, *args, **kwargs):
         import json
         try:
-            # 1. Verificar assinatura e query parameter se a chave secreta do webhook estiver configurada
             webhook_secret = getattr(settings, "ABACATE_PAY_WEBHOOK_SECRET", "")
             if webhook_secret:
-                # Verificar o segredo na URL params
                 req_secret = request.GET.get("webhookSecret", "")
                 if not req_secret or not hmac.compare_digest(req_secret, webhook_secret):
                     return JsonResponse({"status": "error", "message": "Secret inválido nos parâmetros."}, status=400)
 
-                # Verificar a assinatura HMAC nos headers
                 signature = request.headers.get("X-Webhook-Signature")
                 if not signature or not verificar_assinatura_abacatepay(request.body, signature):
                     return JsonResponse({"status": "error", "message": "Assinatura inválida."}, status=400)
 
             data = json.loads(request.body)
 
-            # 2. Suporte ao formato mockado legado (para testes e simulação direta)
             deposito_id = data.get("deposito_id")
             if deposito_id:
                 valor = Decimal(str(data.get("valor")))
@@ -252,7 +240,6 @@ class ConfirmarDepositoWebhookView(View):
                     return JsonResponse({"status": "success", "message": msg})
                 return JsonResponse({"status": "error", "message": msg}, status=400)
 
-            # 3. Formato do Abacate Pay Webhook
             event = data.get("event")
             if event != "billing.paid":
                 return JsonResponse({"status": "success", "message": f"Evento {event} ignorado."})
@@ -269,7 +256,6 @@ class ConfirmarDepositoWebhookView(View):
             except Deposito.DoesNotExist:
                 return JsonResponse({"status": "error", "message": f"Depósito não encontrado para o billing_id {billing_id}."}, status=404)
 
-            # Valor pago (Abacate Pay envia o valor em centavos)
             amount_cents = billing_data.get("amount")
             if amount_cents:
                 valor_pago = Decimal(str(amount_cents)) / Decimal("100")
@@ -300,7 +286,6 @@ class RegistrarVendaView(LoginRequiredMixin, View):
             return JsonResponse({"status": "erro", "mensagem": "UUID do estudante e ID do produto são obrigatórios."}, status=400)
             
         try:
-            # Encontra o estudante e o produto
             estudante_usuario = Usuario.objects.get(uuid=estudante_uuid, tipo="estudante")
             estudante = estudante_usuario.estudante_perfil
             produto = Produto.objects.get(id=produto_id, empresa=request.user.empresa_perfil)
@@ -308,29 +293,22 @@ class RegistrarVendaView(LoginRequiredMixin, View):
             conta_estudante = estudante_usuario.conta
             conta_empresa = request.user.conta
             
-            # 1. Validação rápida de saldo (pre-lock)
             if conta_estudante.saldo < produto.valor:
                 return JsonResponse({"status": "erro", "mensagem": "Saldo do estudante insuficiente."}, status=400)
                 
-            # 2. Executa a transferência de saldo de forma atômica
             with transaction.atomic():
-                # select_for_update para garantir concorrência segura e evitar double spending
                 conta_est_locked = Conta.objects.select_for_update().get(id=conta_estudante.id)
                 conta_emp_locked = Conta.objects.select_for_update().get(id=conta_empresa.id)
                 
-                # Re-validação de saldo após o lock
                 if conta_est_locked.saldo < produto.valor:
                     return JsonResponse({"status": "erro", "mensagem": "Saldo do estudante insuficiente."}, status=400)
                 
-                # Deduz do estudante
                 conta_est_locked.saldo -= produto.valor
                 conta_est_locked.save()
                 
-                # Credita na empresa
                 conta_emp_locked.saldo += produto.valor
                 conta_emp_locked.save()
                 
-                # Registra as Transações
                 trans_debito = Transacao.objects.create(
                     operacao="debito",
                     valor=produto.valor,
@@ -345,7 +323,6 @@ class RegistrarVendaView(LoginRequiredMixin, View):
                     descricao=f"Venda: {produto.nome} para {estudante.nome()}"
                 )
                 
-                # Registra a Venda
                 Venda.objects.create(
                     produto=produto,
                     estudante=estudante,
@@ -400,11 +377,9 @@ class SolicitarSaqueView(LoginRequiredMixin, View):
                     messages.error(request, "Saldo insuficiente para o saque solicitado.")
                     return redirect("company_dashboard")
                     
-                # 1. Deduct balance from vendor immediately
                 conta_locked.saldo -= valor
                 conta_locked.save()
                 
-                # 2. Create debit transaction
                 transacao = Transacao.objects.create(
                     operacao="debito",
                     valor=valor,
@@ -412,7 +387,6 @@ class SolicitarSaqueView(LoginRequiredMixin, View):
                     descricao=f"Saque solicitado para chave Pix: {chave_pix}"
                 )
                 
-                # 3. Create withdraw record
                 Saque.objects.create(
                     transacao=transacao,
                     situacao="pendente",
@@ -472,13 +446,11 @@ class RecusarSaqueView(LoginRequiredMixin, View):
                 saque.adm_responsavel = request.user
                 saque.save()
                 
-                # Devuelve el saldo retornado
                 conta_empresa = saque.transacao.conta
                 conta_locked = Conta.objects.select_for_update().get(id=conta_empresa.id)
                 conta_locked.saldo += saque.transacao.valor
                 conta_locked.save()
                 
-                # Registra transação de estorno (crédito)
                 Transacao.objects.create(
                     operacao="credito",
                     valor=saque.transacao.valor,

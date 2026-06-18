@@ -23,7 +23,6 @@ class PaymentGatewayInterface(ABC):
 
 class MockPaymentGateway(PaymentGatewayInterface):
     def gerar_pix_deposito(self, valor, transacao_id):
-        # Gera dados de pagamento simulados para homologação local
         mock_uuid = uuid.uuid4()
         return {
             "qr_code_copy_paste": f"00020126580014BR.GOV.BCB.PIX0136{mock_uuid}5204000053039865405{valor:.2f}5802BR5913FastPass UFFS6009Chapeco62070503***6304",
@@ -44,12 +43,10 @@ class AbacatePayGateway(PaymentGatewayInterface):
             email = "estudante@uffs.edu.br"
             nome = "Estudante UFFS"
 
-        # O valor na API do Abacate Pay é passado em centavos (inteiro)
         valor_centavos = int(valor * 100)
         api_key = getattr(settings, "ABACATE_PAY_API_KEY", "")
         
         import sys
-        # Se não houver chave de API ou se for ambiente de testes, usa dados mockados do Abacate Pay
         is_test_env = False
         try:
             is_test_env = 'test' in sys.argv or 'test_coverage' in sys.argv or "test" in settings.DATABASES["default"]["NAME"] or not api_key or api_key == "mock"
@@ -61,7 +58,6 @@ class AbacatePayGateway(PaymentGatewayInterface):
             billing_id = f"bill_{uuid.uuid4()}"
             checkout_url = f"https://pay.abacatepay.com/bill-{billing_id}"
             
-            # Atualiza informações de faturamento no depósito correspondente
             try:
                 deposito = transacao.deposito
                 deposito.abacatepay_billing_id = billing_id
@@ -98,7 +94,6 @@ class AbacatePayGateway(PaymentGatewayInterface):
                 "cellphone": "99999999999",
                 "taxId": estudante.cpf
             },
-            # URLs de retorno ao concluir ou voltar do Abacate Pay
             "returnUrl": f"{app_url}/deposito/checkout/{transacao_id}/",
             "completionUrl": f"{app_url}/dashboard/estudante/",
             "externalId": str(transacao_id),
@@ -128,7 +123,6 @@ class AbacatePayGateway(PaymentGatewayInterface):
                 billing_id = billing_data.get("id")
                 checkout_url = billing_data.get("url")
 
-                # Atualiza dados de faturamento do Abacate Pay no depósito correspondente
                 try:
                     deposito = transacao.deposito
                     deposito.abacatepay_billing_id = billing_id
@@ -162,12 +156,10 @@ def confirmar_deposito(deposito_id, valor_pago):
             deposito.situacao = "confirmado"
             deposito.save()
 
-            # Atualizar saldo da conta do usuário
             conta = Conta.objects.select_for_update().get(usuario=deposito.transacao.conta.usuario)
             conta.saldo += valor_pago
             conta.save()
 
-            # Atualizar a transação correspondente
             transacao = deposito.transacao
             transacao.valor = valor_pago
             transacao.save()
