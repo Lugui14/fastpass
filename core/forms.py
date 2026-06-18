@@ -1,7 +1,6 @@
 from django import forms
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
-from django.conf import settings
 from .models import Estudante, Empresa
 
 Usuario = get_user_model()
@@ -10,19 +9,12 @@ class RegisterForm(forms.ModelForm):
     TIPO_CHOICES = [
         ("estudante", "Estudante"),
         ("empresa", "Empresa"),
-        ("adm", "Administrador"),
     ]
 
     # Common fields
     password = forms.CharField(label="Senha", widget=forms.PasswordInput(attrs={"class": "form-control", "placeholder": "Digite sua senha"}), min_length=6)
     confirm_password = forms.CharField(label="Confirme a Senha", widget=forms.PasswordInput(attrs={"class": "form-control", "placeholder": "Confirme sua senha"}))
     tipo = forms.ChoiceField(label="Tipo de Conta", choices=TIPO_CHOICES, widget=forms.Select(attrs={"class": "form-control"}))
-    codigo_admin = forms.CharField(
-        label="Código Secreto Administrador",
-        required=False,
-        widget=forms.PasswordInput(attrs={"class": "form-control form-control-uffs", "placeholder": "Necessário apenas para administradores"}),
-        help_text="Preencha apenas se estiver criando uma conta de administrador."
-    )
     
     # Estudante fields
     cpf = forms.CharField(label="CPF", required=False, widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "CPF (apenas números)"}), max_length=12)
@@ -41,6 +33,9 @@ class RegisterForm(forms.ModelForm):
             "email": forms.EmailInput(attrs={"class": "form-control", "placeholder": "E-mail de acesso"}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     def clean_email(self):
         email = self.cleaned_data.get("email")
         if Usuario.objects.filter(email=email).exists():
@@ -49,8 +44,8 @@ class RegisterForm(forms.ModelForm):
 
     def clean_tipo(self):
         tipo = self.cleaned_data.get("tipo")
-        if tipo not in ["estudante", "empresa", "adm"]:
-            raise ValidationError("Tipo de conta inválido.")
+        if tipo not in ["estudante", "empresa"]:
+            raise ValidationError("Tipo de conta inválido. Você não pode registrar um usuário administrador.")
         return tipo
 
     def clean(self):
@@ -62,15 +57,8 @@ class RegisterForm(forms.ModelForm):
         if password and confirm_password and password != confirm_password:
             self.add_error("confirm_password", "As senhas não coincidem.")
 
-        # Admin validation
-        if tipo == "adm":
-            codigo = cleaned_data.get("codigo_admin")
-            secret = getattr(settings, "ADMIN_REGISTRATION_SECRET", "")
-            if not secret or codigo != secret:
-                self.add_error("codigo_admin", "Código secreto de administrador inválido ou incorreto.")
-
         # Conditional validation based on tipo
-        elif tipo == "estudante":
+        if tipo == "estudante":
             cpf = cleaned_data.get("cpf")
             matricula = cleaned_data.get("matricula")
             if not cpf:
@@ -88,11 +76,6 @@ class RegisterForm(forms.ModelForm):
         user = super().save(commit=False)
         user.set_password(self.cleaned_data["password"])
         
-        # Se for adm, também marca como staff e superuser para ter acesso ao Django admin
-        if self.cleaned_data.get("tipo") == "adm":
-            user.is_staff = True
-            user.is_superuser = True
-            
         if commit:
             user.save()
             tipo = self.cleaned_data.get("tipo")

@@ -47,7 +47,7 @@ class Usuario(AbstractUser):
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["nome", "tipo"]
+    REQUIRED_FIELDS = ["nome"]
 
     objects = UsuarioManager()
 
