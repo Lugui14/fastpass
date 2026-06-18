@@ -1,3 +1,4 @@
+from core.models import Estudante
 from abc import ABC, abstractmethod
 import uuid
 import logging
@@ -77,6 +78,8 @@ class AbacatePayGateway(PaymentGatewayInterface):
 
         app_url = getattr(settings, "APP_URL", "http://localhost:8000").rstrip("/")
 
+        estudante = Estudante.objects.get(usuario=usuario)
+
         payload = {
             "frequency": "ONE_TIME",
             "methods": ["PIX"],
@@ -92,7 +95,8 @@ class AbacatePayGateway(PaymentGatewayInterface):
             "customer": {
                 "name": nome,
                 "email": email,
-                "cellphone": "99999999999"
+                "cellphone": "99999999999",
+                "taxId": estudante.cpf
             },
             # URLs de retorno ao concluir ou voltar do Abacate Pay
             "returnUrl": f"{app_url}/deposito/checkout/{transacao_id}/",

@@ -280,6 +280,35 @@ class DepositFlowTest(TestCase):
         self.conta.refresh_from_db()
         self.assertEqual(self.conta.saldo, Decimal("120.00"))
 
+    def test_webhook_confirmacao_sem_barra_final(self):
+        # Create pending deposit manually
+        transacao = Transacao.objects.create(
+            operacao="credito",
+            valor=0.00,
+            conta=self.conta,
+            descricao="Recarga PIX pendente"
+        )
+        deposito = Deposito.objects.create(
+            transacao=transacao,
+            valor=Decimal("120.00"),
+            situacao="pendente",
+            metodo_pagamento="pix",
+            descricao="PIX-DEP-MOCK"
+        )
+        
+        # Call webhook POST without trailing slash
+        import json
+        payload = {"deposito_id": deposito.id, "valor": "120.00"}
+        response = self.client.post(
+            "/api/pagamentos/confirmar",
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 200)
+        
+        self.conta.refresh_from_db()
+        self.assertEqual(self.conta.saldo, Decimal("120.00"))
+
     def test_abacatepay_gateway_gera_checkout_no_ambiente_de_testes(self):
         from core.services.payment import AbacatePayGateway
         # Create pending deposit manually
@@ -385,31 +414,51 @@ class DepositFlowTest(TestCase):
         }
         
         with override_settings(ABACATE_PAY_WEBHOOK_SECRET="super-secret-key"):
-            # Sem cabeçalho de assinatura - deve falhar
-            response = self.client.post(
+            # 1. Sem parâmetro webhookSecret nos query params - deve falhar
+            response_no_param = self.client.post(
                 "/api/pagamentos/confirmar/",
                 data=json.dumps(payload),
                 content_type="application/json"
             )
-            self.assertEqual(response.status_code, 400)
-            
-            # Com assinatura inválida - deve falhar
-            response_invalid = self.client.post(
-                "/api/pagamentos/confirmar/",
+            self.assertEqual(response_no_param.status_code, 400)
+            self.assertIn("Secret inválido nos parâmetros", response_no_param.json()["message"])
+
+            # 2. Com parâmetro webhookSecret incorreto nos query params - deve falhar
+            response_wrong_param = self.client.post(
+                "/api/pagamentos/confirmar/?webhookSecret=errado",
+                data=json.dumps(payload),
+                content_type="application/json"
+            )
+            self.assertEqual(response_wrong_param.status_code, 400)
+            self.assertIn("Secret inválido nos parâmetros", response_wrong_param.json()["message"])
+
+            # 3. Com parâmetro webhookSecret correto, mas sem assinatura - deve falhar
+            response_no_sig = self.client.post(
+                "/api/pagamentos/confirmar/?webhookSecret=super-secret-key",
+                data=json.dumps(payload),
+                content_type="application/json"
+            )
+            self.assertEqual(response_no_sig.status_code, 400)
+
+            # 4. Com parâmetro webhookSecret correto e assinatura inválida - deve falhar
+            response_invalid_sig = self.client.post(
+                "/api/pagamentos/confirmar/?webhookSecret=super-secret-key",
                 data=json.dumps(payload),
                 content_type="application/json",
                 HTTP_X_WEBHOOK_SIGNATURE="invalid_signature"
             )
-            self.assertEqual(response_invalid.status_code, 400)
+            self.assertEqual(response_invalid_sig.status_code, 400)
             
-            # Com assinatura válida - deve ter sucesso
+            # 5. Com parâmetro webhookSecret correto e assinatura válida - deve ter sucesso
             import hmac
             import hashlib
+            import base64
             raw_body = json.dumps(payload).encode("utf-8")
-            valid_sig = hmac.new(b"super-secret-key", raw_body, hashlib.sha256).hexdigest()
+            valid_sig_bytes = hmac.new(b"super-secret-key", raw_body, hashlib.sha256).digest()
+            valid_sig = base64.b64encode(valid_sig_bytes).decode("utf-8")
             
             response_valid = self.client.post(
-                "/api/pagamentos/confirmar/",
+                "/api/pagamentos/confirmar/?webhookSecret=super-secret-key",
                 data=raw_body,
                 content_type="application/json",
                 HTTP_X_WEBHOOK_SIGNATURE=valid_sig

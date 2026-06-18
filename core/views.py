@@ -202,15 +202,22 @@ import hmac
 import hashlib
 from django.conf import settings
 
-def verificar_assinatura_abacatepay(raw_body, signature, secret):
-    if not secret or not signature:
+def verificar_assinatura_abacatepay(raw_body, signature):
+    ABACATEPAY_PUBLIC_KEY = "t9dXRhHHo3yDEj5pVDYz0frf7q6bMKyMRmxxCPIPp3RCplBfXRxqlC6ZpiWmOqj4L63qEaeUOtrCI8P0VMUgo6iIga2ri9ogaHFs0WIIywSMg0q7RmBfybe1E5XJcfC4IW3alNqym0tXoAKkzvfEjZxV6bE0oG2zJrNNYmUCKZyV0KZ3JS8Votf9EAWWYdiDkMkpbMdPggfh1EqHlVkMiTady6jOR3hyzGEHrIz2Ret0xHKMbiqkr9HS1JhNHDX9"
+
+    if not ABACATEPAY_PUBLIC_KEY or not signature:
         return False
-    computed_signature = hmac.new(
-        secret.encode("utf-8"),
+
+    import base64
+    computed_digest = hmac.new(
+        ABACATEPAY_PUBLIC_KEY.encode("utf-8"),
         raw_body,
         hashlib.sha256
-    ).hexdigest()
-    return hmac.compare_digest(computed_signature, signature)
+    ).digest()
+
+    computed_signature = base64.b64encode(computed_digest).decode("utf-8")
+    
+    return hmac.compare_digest(computed_signature, signature.strip())
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -221,11 +228,17 @@ class ConfirmarDepositoWebhookView(View):
     def post(self, request, *args, **kwargs):
         import json
         try:
-            # 1. Verificar assinatura se a chave secreta do webhook estiver configurada
+            # 1. Verificar assinatura e query parameter se a chave secreta do webhook estiver configurada
             webhook_secret = getattr(settings, "ABACATE_PAY_WEBHOOK_SECRET", "")
             if webhook_secret:
-                signature = request.META.get("HTTP_X_WEBHOOK_SIGNATURE")
-                if not signature or not verificar_assinatura_abacatepay(request.body, signature, webhook_secret):
+                # Verificar o segredo na URL params
+                req_secret = request.GET.get("webhookSecret", "")
+                if not req_secret or not hmac.compare_digest(req_secret, webhook_secret):
+                    return JsonResponse({"status": "error", "message": "Secret inválido nos parâmetros."}, status=400)
+
+                # Verificar a assinatura HMAC nos headers
+                signature = request.headers.get("X-Webhook-Signature")
+                if not signature or not verificar_assinatura_abacatepay(request.body, signature):
                     return JsonResponse({"status": "error", "message": "Assinatura inválida."}, status=400)
 
             data = json.loads(request.body)
@@ -244,7 +257,7 @@ class ConfirmarDepositoWebhookView(View):
             if event != "billing.paid":
                 return JsonResponse({"status": "success", "message": f"Evento {event} ignorado."})
 
-            billing_data = data.get("data", {})
+            billing_data = data.get("data", {}).get("billing", {})
             billing_id = billing_data.get("id")
             status = billing_data.get("status")
 
